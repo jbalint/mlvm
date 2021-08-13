@@ -1,0 +1,73 @@
+1. Prerequisites
+----------------
+
+You will need working installations of OpenSSL if you decide to use encryption and signature (default).
+
+OpenSSL 0.9.6 or greater:
+http://www.openssl.org/
+
+Also, this is Linux software that has been tested under Mandrake 8.2, RedHat 7.3 and RedHat 8.0.
+Please, let me know if you succeeded compiling and running the server under other OS.
+
+The GUI client requires Java 1.4.0 or better.
+
+
+2. Building / Installation
+--------------------------
+
+To install MLVM with default options:
+
+./configure
+make
+(su root)
+make install
+
+This will install the MLVM binary in /usr/local/bin, configuration files
+in /usr/local/etc/mlvm, the server in /usr/local/sbin, etc. To specify a different
+installation prefix, use the --prefix option to configure:
+
+./configure --prefix=/opt
+make
+(su root if required)
+make install
+
+Will install MLVM in /opt/{bin,etc,lib,sbin}. You can also override 
+specific paths, for example:
+
+./configure --prefix=/opt --sysconfdir=/etc
+make
+(su root)
+make install
+
+This will install the binaries in /opt/{bin,lib,sbin}, but will place the
+configuration files in /etc/mlvm.
+
+If you need to pass special options to the compiler or linker, you
+can specify these as environment variables before running ./configure.
+For example:
+
+CFLAGS="-O -m486" LDFLAGS="-s" LIBS="-lrubbish" LD="/usr/foo/ld" ./configure
+
+3. Configuration
+----------------
+
+The runtime configuration files are installed by in ${prefix}/etc/mlvm or 
+whatever you specified as your --sysconfdir (/usr/local/etc/mlvm by default).
+
+The default configuration should be instantly usable, though you should 
+review it to ensure that it matches your security requirements.
+
+The server will automaticaly generate a host key at the first start.
+
+For more information on configuration, please refer to the manual pages 
+for mlvmd and mlvmc (not supported yet :).
+
+4. Problems?
+------------
+
+If you experience problems compiling, installing or running MLVM.
+Please refer to the "reporting bugs" section of the webpage at
+http://draco.cis.uoguelph.ca/
+Or send an e-mail to: <imago-bugs@draco.cis.uoguelph.ca>
+
+$Id: INSTALL,v 1.2 2003/03/25 23:31:14 gautran Exp $

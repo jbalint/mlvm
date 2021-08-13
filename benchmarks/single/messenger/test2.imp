@@ -1,0 +1,57 @@
+// This benchmark will test messengers cloning.
+// The stationary imago creates a worker imago, dispatches three oneway_messengers to the work and
+// then a cod_messenger, after that it  waits for the return of the cod_messenger, and other replies.
+// The worker waits for a cod_messenger. As soon as the cod_messenger
+// having been accepted, the worker clones itself. As the consequence, three oneway_messengers should
+// be resumed. They will be colned and reattached to their destined receiver.
+ 
+:- stationary(test2).
+
+test2(_):- 
+	create("msg_test2.lo", worker, _),
+	dispatch($oneway_messenger, worker, msg1),
+ 	dispatch($oneway_messenger, worker, msg2),
+	dispatch($oneway_messenger, worker, msg3),
+	dispatch($cod_messenger, worker, cod("Pizza=$14", ACK)),
+	display(3),
+	terminate.	
+
+display(0) :- !.
+display(N) :-
+	wait_accept(Who, R),
+	write("From "),
+	write(Who),
+	nl,
+	write("Result = "),
+	write(R),
+	nl,
+	N1 is N - 1,
+	display(N1).
+
+:-end_stationary(test2).
+
+:-worker(msg_test2).
+
+msg_test2(Arg):-
+ 	wait_accept(Who, cod(M, "I paid the Pizza")), 
+	clone(cloner, R),
+	R == parent -> 
+		do_work;				// parent accepts 3 msg's
+ 		do_work.				// and clone accept 3 msg's
+
+do_work :- 
+	do_accept(L, 3),
+	dispatch($oneway_messenger, queen, L),
+	dispose.
+
+do_accept([], 0):- !.
+do_accept([M|L], N):-
+	wait_accept(_, M),
+	N1 is N - 1,
+	do_accept(L, N1).
+	
+:-end_worker(msg_test2).
+
+
+
+ 

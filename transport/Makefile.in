@@ -1,0 +1,243 @@
+## $Header: /usr/local/cvsroot/lvm/transport/Makefile.in,v 1.11 2003/03/24 14:07:48 gautran Exp $ ##
+ # Copyright (C) 2003  X. Li <xli@draco.cis.uoguelph.ca>,
+ #                     G. Autran <gautran@draco.cis.uoguelph.ca>,
+ #                     H. Liang <hliang@draco.cis.uoguelph.ca>
+ # $Id: Makefile.in,v 1.11 2003/03/24 14:07:48 gautran Exp $ 
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+ # the Free Software Foundation; either version 2 of the License, or
+ # (at your option) any later version.
+ #
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+ #
+ # You should have received a copy of the GNU General Public License
+ # along with this program; if not, write to the Free Software
+ # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+################################################################################
+##                                                                            ##
+## Makefile                                                                   ##
+##                                                                            ##
+##                                                                            ##
+##                                                                            ##
+##                                                                            ##
+##                                                                            ##
+################################################################################
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+libexecdir=@libexecdir@
+libdir=@libdir@
+datadir=@datadir@
+mandir=@mandir@
+sysconfdir=@sysconfdir@
+localstatedir=@localstatedir@
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+
+DESTDIR=
+VPATH=@srcdir@
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@ -s -m755
+INSTALL_LIB=@INSTALL@ -s -m555
+
+EX_LIBS=
+
+CXX=@CXX@
+CC=@CC@
+AR=@AR@
+RANLIB=@RANLIB@
+
+PDU_SPOOL_DIR = $(localstatedir)/spool/mlvm/transport
+CONF_DIR = $(sysconfdir)/mlvm
+
+CFLAGS = @CFLAGS@ -D_GNU_SOURCE -D_LOG_STATISTICS\
+	-D_IMAGO_PDU_SPOOL="\"$(PDU_SPOOL_DIR)\"" -D_IMAGO_CONF_DIR="\"$(CONF_DIR)\"" 
+
+CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/include -I$(top_srcdir)/opcode @CPPFLAGS@ 
+
+LIBS=@LIBS@
+LDFLAGS=-L. @LDFLAGS@
+
+SRCS = imago_layer_connection.c imago_layer_routing.c imago_layer_security.c \
+	imago_layer_ADArendezvous.c imago_layer_marshaling.c \
+	imago_pdu.c  imago_protocol.c imago_signal.c state_machine.c queue.c \
+	frame.c timer.c pdu_backup.c log.c connection.c
+
+##OPCODE = $(top_srcdir)/opcode.o
+
+# Do we support encryption ??
+#SECURITY = no
+SECURITY = yes
+# Do we support PDU signature ?? (Encryption MUST be turned on)
+#SIGNATURE = no
+SIGNATURE = yes
+# Multi-Threaded application or not ???
+#PTHREAD = no
+PTHREAD = yes
+# Memwatch debugging utility.
+#MEMWATCH ?= yes
+MEMWATCH ?= no
+
+# Imago router uses those source files. 
+RSRCS = imago_layer_connection.c imago_layer_routing_r.c imago_pdu.c  imago_protocol_r.c imago_signal.c \
+	state_machine.c queue.c frame.c timer.c log.c connection.c
+
+
+ifeq ($(PTHREAD), yes)
+CFLAGS += -D_REENTRANT 
+LDFLAGS += -lpthread
+SHLIBDEPS += -lpthread
+endif
+
+ifeq ($(SECURITY), yes)
+CFLAGS += -D_IMAGO_SECURITY_ENABLED
+LDFLAGS += -lssl
+SHLIBDEPS += -lssl
+SRCS += cipher.c
+ ifeq ($(SIGNATURE), yes)
+ CFLAGS += -D_IMAGO_SIGN_ENABLED
+ endif
+endif
+
+
+ifeq ($(MEMWATCH), yes)
+CFLAGS += -DMEMWATCH -DMW_STDIO -DMALLOC_TRACE
+SRCS += memwatch.c
+endif
+
+
+
+ROBJS=$(RSRCS:.c=.o)
+OBJS=$(SRCS:.c=.o)
+
+SHLIB_MINOR = 0
+SHLIB_MAJOR = 1
+SHLIBDIRS=itp
+SHLIB_EXT=.so.$(SHLIB_MAJOR).$(SHLIB_MINOR)
+SHARED_LIBS_LINK_EXTS=.so.$(SHLIB_MAJOR) .so
+
+
+
+%.o:%.c %.h include.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+%.o:%.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+
+all: build-libs imago_router
+
+install: install-libs
+	$(INSTALL) -d $(DESTDIR)$(PDU_SPOOL_DIR)
+	$(INSTALL) -d $(DESTDIR)$(CONF_DIR)
+	$(INSTALL) -d $(DESTDIR)$(sbindir)
+	$(INSTALL_PROGRAM) imago_router $(DESTDIR)$(sbindir)/.
+
+uninstall: uninstall-libs
+	-rm -f $(DESTDIR)$(sbindir)/imago_router
+	-rm -f $(DESTDIR)$(PDU_SPOOL_DIR)/*.pdu
+	-rm -f $(DESTDIR)$(PDU_SPOOL_DIR)/backup_list
+	-rm -f $(DESTDIR)$(CONF_DIR)/known_hosts
+
+
+uninstallall: uninstall
+	-rm -f $(DESTDIR)$(CONF_DIR)/imago_host_key
+	-rmdir $(DESTDIR)$(PDU_SPOOL_DIR)
+
+
+uninstall-libs:
+	@if [ -n $(SHLIBDIRS) ]; then \
+		for i in ${SHLIBDIRS}; \
+			do \
+			if [ -f "lib$$i$(SHLIB_EXT)" ]; then \
+				$(RM) $(DESTDIR)$(libdir)/lib$$i$(SHLIB_EXT); \
+			fi \
+		done; \
+		(       here="`pwd`"; \
+			cd $(DESTDIR)$(libdir); \
+			make -f $$here/Makefile clean-shared ); \
+	fi
+
+
+
+install-libs:
+	@if [ -n $(SHLIBDIRS) ]; then \
+		$(INSTALL) -d $(DESTDIR)$(libdir); \
+		for i in ${SHLIBDIRS}; \
+			do \
+			if [ -f "lib$$i$(SHLIB_EXT)" ]; then \
+				$(INSTALL_LIB) lib$$i$(SHLIB_EXT) $(DESTDIR)$(libdir)/.; \
+			fi \
+		done; \
+		(       here="`pwd`"; \
+			cd $(DESTDIR)$(libdir); \
+			make -f $$here/Makefile link-shared ); \
+	fi
+
+
+
+build-libs: libitp.a libitp$(SHLIB_EXT)
+clean-libs: clean-shared
+	rm -f libitp.a libitp$(SHLIB_EXT)
+
+
+libitp$(SHLIB_EXT): libitp.a build-shared
+
+
+clean-shared:
+	@for i in $(SHLIBDIRS); do \
+		if [ -n "$(SHARED_LIBS_LINK_EXTS)" ]; then \
+			tmp="$(SHARED_LIBS_LINK_EXTS)"; \
+			for j in $${tmp:-x}; do \
+				( set -x; rm -f lib$$i$$j ); \
+			done; \
+		fi; \
+	( set -x; rm -f lib$$i$(SHLIB_EXT) ); \
+	done
+
+link-shared: 
+	@for i in $(SHLIBDIRS); do \
+		prev=lib$$i$(SHLIB_EXT); \
+		if [ -n "$(SHARED_LIBS_LINK_EXTS)" ]; then \
+			tmp="$(SHARED_LIBS_LINK_EXTS)"; \
+			for j in $${tmp:-x}; do \
+				( set -x; ln -f -s $$prev lib$$i$$j ); \
+				prev=lib$$i$$j; \
+			done; \
+		fi; \
+	done
+
+build-shared: clean-shared do_gnu-shared link-shared
+
+do_gnu-shared: 
+	libs='-L. ${SHLIBDEPS}'; for i in ${SHLIBDIRS}; do \
+	( set -x; ${CC}  -shared -o lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
+		-Wl,-soname=lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
+		-Wl,--whole-archive lib$$i.a \
+		-Wl,--no-whole-archive $$libs ${EX_LIBS} -lc ) || exit 1; \
+	libs="$$libs -l$$i"; \
+	done
+
+libitp.a: $(OBJS)
+	$(AR) cr libitp.a $?
+	$(RANLIB) libitp.a
+
+clean: clean-libs
+	rm -f $(OBJS) *~ *.o 
+
+distclean: clean 
+	rm -f Makefile imago_router
+
+imago_protocol_r.o: imago_protocol.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -D_ROUTER_ONLY -c $< -o $@
+
+imago_layer_routing_r.o: imago_layer_routing.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -D_ROUTER_ONLY -c $< -o $@
+
+imago_router: imago_router.o $(ROBJS) 
+	$(CC) $(LDFLAGS) -o $@ imago_router.o $(ROBJS)

@@ -1,0 +1,70 @@
+ 
+:- stationary(test3).
+
+test3(_):- create("qsort_test3.lo", "qsort(250)", arg(["qsort(100)", "qsort(50)","qsort(200)",
+	"qsort(150)", "qsort(1000)", "qsort(500)","qsort(783)","qsort(250)"],
+	[100, 50, 200, 150, 1000, 500, 783, 250])), 
+	report(8),
+	terminate.
+
+report(0) :- !.
+report(N) :-
+ 	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl,
+	write("Result="),
+	write(R),
+	nl,
+	N1 is N - 1,
+	report(N1).
+
+:-end_stationary(test3).
+
+
+:-worker(qsort_test3).
+
+qsort_test3(arg(Names, Values)):- 
+	qclone(Names, Values).
+
+qclone([_], [N]):- 
+	!, qsort(N).
+qclone([Y|L1], [N|L2]):-  
+	clone(Y, R),
+	R == parent ->
+		qclone(L1, L2);
+ 		qsort(N).
+
+qsort(N):-
+	randomlist(X, 79 , N, N),
+	qsort(L, [], X),
+ 	dispatch($oneway_messenger, queen, L),
+	dispose.
+	
+randomlist([], _, _, 0):- !.
+randomlist([X|Xs], S, Limit, N):-
+	random(X, S, S1, Limit),
+	N1 is N-1,
+	randomlist(Xs, S1, Limit, N1).
+	
+random(R, S0, S1, Limit):-
+	R is (S0 mod Limit) + 1,
+	S1 is  (741 * S0 + 1) mod 4096.
+
+qsort(R, R, []) :- !.
+qsort(R, R0, [X|L]) :-
+	partition(X, L1, L2, L),
+	qsort(R1, R0, L2),
+	qsort(R, [X|R1], L1).
+
+partition(_, [], [], []):- !.
+
+partition(Y, [X|L1], L2, [X|L]) :-
+	X <= Y, !,
+	partition(Y, L1, L2, L).
+partition(Y, L1, [X|L2], [X|L]) :-
+	partition(Y, L1, L2, L).
+
+:-end_worker(qsort_test3).
+
+ 

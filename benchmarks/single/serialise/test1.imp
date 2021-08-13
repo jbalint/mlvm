@@ -1,0 +1,68 @@
+:-stationary(test1).
+
+test1(_):- create("serialise_test1.lo", "worker", 1000),
+	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl,
+	write("Result="),
+	write(R),
+	nl, 	
+	terminate.
+
+:-end_stationary(test1).
+
+:-worker(serialise_test1).
+
+serialise_test1(N):-
+	randomlist(L, 79, N, N),
+ 	serialise_test1(R, L), 
+	dispatch($oneway_messenger, queen, R),
+	dispose.
+
+
+	
+randomlist([], _, _, 0):- !.
+randomlist([X|Xs], S, Limit, N):-
+	random(X, S, S1, Limit),
+	N1 is N-1,
+	randomlist(Xs, S1, Limit, N1).
+	
+random(R, S0, S1, Limit):-
+	R is (S0 mod Limit) + 1,
+	S1 is (741 * S0 + 1) mod 4096.
+  
+serialise_test1(R, L) :-
+    pairlists(R, A, L),
+    arrange(T, A),
+    numbered(1,_, T).
+
+pairlists([],[],[]):- !.
+pairlists( [Y|R],[pair(X,Y)|A], [X|L]) :- 
+	pairlists(R, A, L).
+
+
+arrange(void, []):- !.
+arrange(tree(T1,X,T2), [X|L]) :-
+    split(X,L1,L2, L),
+    arrange(T1, L1),
+    arrange(T2, L2).
+
+
+split(_,[],[], []):- !.
+split(X,L1,L2, [X|L]) :- !, 
+	split(X,L1,L2, L).
+split(Y,[X|L1],L2, [X|L]) :- 
+	before(X,Y), !, split(Y,L1,L2, L).
+split(Y,L1,[X|L2], [X|L]) :- 
+	before(Y,X), !, split(Y,L1,L2, L).
+
+before(pair(X1,_),pair(X2,_)) :- X1 < X2.
+
+numbered(N, N, void):- !.
+numbered(N0, N, tree(T1,pair(_,N1),T2)) :-
+    numbered(N0, N1, T1),
+    N2 is N1+1,
+    numbered(N2, N, T2).
+    
+:-end_worker(serialise_test1).

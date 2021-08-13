@@ -1,0 +1,33 @@
+:- messenger(postman_messenger).
+
+postman_messenger([List, Msg]):-
+	send(Msg, List),
+      	dispose.	
+
+send([], _) :- !.
+send(_, []) :- !.
+send([Msg], [Who]):- !,
+ 	deliver(Who, Msg).	// deliver the last msg by itself	
+send([Msg|ML], [Who|L]):-
+	deliver(Who, Msg),
+	send(ML, L).
+
+ deliver(Receiver, Msg):- 
+      	attach(Receiver, Msg, Result),
+     	check(Receiver, Msg, Result). 
+
+ check(_, _,  received):- !. 	
+
+ check(_, _, deceased):- !.	
+
+ check(Receiver, Msg, cloned(Clone)):- !,
+     	clone(_, R),			
+     	R == clone ->
+       		deliver(Clone, Msg); 
+       		deliver(Receiver, Msg).	
+
+ check(Receiver, Msg, moved(Server)):-!,
+     	move(Server), !,	
+     	deliver(Receiver, Msg).
+
+:- end_messenger(postman_messenger).

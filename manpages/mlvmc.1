@@ -1,0 +1,56 @@
+.\"  -*- nroff -*-
+.\"
+.\" mlvmc.1
+.\"
+.\" Author: Guillaume Autran <gautran@uoguelph.ca>
+.\"
+.\" Copyright (c) 2003 Guillaume Autran, Guelph, Ontario, Canada
+.\"                    All rights reserved
+.\"
+.\" Created: Thu Feb 20 07:58:13 EST 2003 gautran
+.\"
+.\" $Id: mlvmc.1,v 1.3 2003/03/16 14:32:48 gautran Exp $
+.\"
+.Dd February 20, 2003
+.Dt MLVMC 1
+.Os
+.Sh NAME
+.Nm mlvmc
+.Nd Imago Mobile-Agent Client (Multi-thread Light-weight Virtual Machine)
+.Sh SYNOPSIS
+.Nm mlvmc
+.Op Fl hv
+.Op Fl f Ar config
+.Op Fl u Ar port
+.Sh DESCRIPTION
+.Nm
+(MLVM Client) is the client program for 
+.Xr mlvmd 8 .
+Together these programs run Imago prolog mobile agents. 
+.Xr mlvmd 8
+is normally started at boot from
+.Pa /etc/rc .
+.Xr mlvmc 1
+allows you to send basic requests to the server. Commands are four upper case characters followed by an optional argument.
+The program is intended to be a command line base interface for further graphical extensions.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl f Ar config
+Specifies the name of the configuration file.
+The default is
+.Pa /etc/mlvm/mlvmd.conf .
+.It Fl h
+Print a one-line help message and exit.
+.It Fl u Ar port
+Specifies which UNIX port the server daemon is listening on for local connection.
+.It Fl v
+Print the version information and exit.
+.El
+.Sh AUTHORS
+Guillaume Autran <gautran@uoguelph.ca>
+.Sh SEE ALSO
+.Xr imagoc 1 ,
+.Xr masm 1 ,
+.Xr mlvmd 8 ,
+.Xr mlvmd.conf 5 .

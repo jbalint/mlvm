@@ -1,0 +1,96 @@
+## $Header: /usr/local/cvsroot/lvm/Makefile.in,v 1.13 2003/03/25 23:47:39 gautran Exp $ ##
+ # Copyright (C) 2003  X. Li <xli@draco.cis.uoguelph.ca>,
+ #                     G. Autran <gautran@draco.cis.uoguelph.ca>,
+ #                     H. Liang <hliang@draco.cis.uoguelph.ca>
+ # $Id: Makefile.in,v 1.13 2003/03/25 23:47:39 gautran Exp $ 
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+ # the Free Software Foundation; either version 2 of the License, or
+ # (at your option) any later version.
+ #
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+ #
+ # You should have received a copy of the GNU General Public License
+ # along with this program; if not, write to the Free Software
+ # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+################################################################################
+# MLVM General Makefile
+################################################################################
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+libexecdir=@libexecdir@
+datadir=@datadir@
+mandir=@mandir@
+sysconfdir=@sysconfdir@
+localstatedir=@localstatedir@
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+
+
+DESTDIR=
+VPATH=@srcdir@
+
+CC=@CC@
+CFLAGS = @CFLAGS@ 
+LDFLAGS = @LDFLAGS@ 
+
+VERSION=$(shell grep '^\#define[ |\t]*MLVM_VERSION' ./include/version.h | cut -d '"' -f 2)
+
+BASENAME=       mlvm
+NAME=           $(BASENAME)-$(VERSION)
+TARFILE=        $(NAME).tar
+TAR= tar
+TARFLAGS= --no-recursion
+
+
+DIRS = opcode builtins assembler imagoc transport creator memory engine system msger manpages
+
+
+all \
+clean \
+install \
+uninstall \
+uninstallall:
+	@for i in $(DIRS); \
+        do \
+        if [ -d "$$i" ]; then \
+		($(MAKE) -C $$i -f Makefile $@) || exit 1;\
+        fi; \
+        done
+
+distclean:
+	@for i in $(DIRS); \
+        do \
+        if [ -d "$$i" ]; then \
+		($(MAKE) -C $$i -f Makefile $@) || exit 1;\
+        fi; \
+        done; \
+	rm -f Makefile config.log config.status 
+	rm -Rf autom4te*.cache
+
+tar:
+	ln -s . $(NAME)
+	@$(TAR) $(TARFLAGS) -cvf - \
+		`find  $(NAME)/* \! -path CVS/\* \! -path \*/CVS/\* \! -name CVS \! -name .cvsignore \! -name STATUS \! -name TABLE \! -name core \! -name  $(NAME) \! -name  \*~ | sort` | \
+	bzip2 >../$(TARFILE).bz2; \
+	rm -f $(NAME); \
+	ls -l ../$(TARFILE).bz2
+
+dist: clean distclean tar
+
+
+$(srcdir)/configure: configure.ac 
+	cd $(srcdir) && autoconf
+
+Makefile: Makefile.in config.status
+	./config.status
+
+config.status: configure
+	./config.status --recheck
+

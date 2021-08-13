@@ -1,0 +1,33 @@
+:- messenger(paperboy_messenger).
+
+paperboy_messenger([List, Msg]):-
+	send(Msg, List),
+      	dispose.	
+
+
+
+send(Msg, [Who]):- !,
+ 	deliver(Who, Msg).	// deliver the last msg by itself	
+send(Msg, [Who|L]):-
+	deliver(Who, Msg),
+	send(Msg, L).
+
+ deliver(Receiver, Msg):- 
+      	attach(Receiver, Msg, Result),
+     	check(Receiver, Msg, Result). 
+
+ check(_, _,  received):- !. 	
+
+ check(_, _, deceased):- !.	
+
+ check(Receiver, Msg, cloned(Clone)):- !,
+     	clone(_, R),			
+     	R == clone ->
+       		deliver(Clone, Msg); 
+       		deliver(Receiver, Msg).	
+
+ check(Receiver, Msg, moved(Server)):-!,
+     	move(Server), !,	
+     	deliver(Receiver, Msg).
+
+:- end_messenger(paperboy_messenger).

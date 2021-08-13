@@ -1,0 +1,144 @@
+
+//?- tsp(50, Matrix, Path, Cost).
+
+:-stationary(test1).
+
+test1(_):- create("tsp_test1.lo", my_worker, 60),
+	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl, 	
+	write("Result="), 
+	write(R), 
+	nl,	
+	terminate.
+
+:-end_stationary(test1).
+
+:-worker(tsp_test1).
+
+tsp_test1(N):- 
+	tsp(N, Matrix, Path, Cost),
+	dispatch($oneway_messenger, queen, result(matrix(Matrix), path(Path), cost(Cost))),	
+	dispose.
+
+
+tsp(N, Matrix, Path, Cost) :- 
+    	random_matrix(N, Matrix, 17),
+    	tsp(N, Matrix,  _, 100000, Path, Cost, N).
+	
+tsp(_, _, P0, C0, P0, C0, 0) :- !.
+
+tsp(N, Matrix, MinP, MinC, P, C, V) :-
+	V > 0,
+	V1 is V-1,
+	all_but_this_vertex(V, Vs1, N),
+	travel(Matrix, MinC, [V], P1, Vs1),
+	cost(Matrix, C1, 0, [V|P1]),
+	update_minimum1(C1, P1, V, MinC, MinP, MinC1, MinP1),
+	tsp(N, Matrix, MinP1, MinC1, P, C, V1).
+ 
+all_but_this_vertex(_, [], 0) :- !.
+all_but_this_vertex(M, Vs, N) :-
+	N = M, !,
+	N1 is N-1,
+	all_but_this_vertex(N, Vs, N1).
+all_but_this_vertex(M, [N|Vs], N) :-
+	N1 is N-1,
+	all_but_this_vertex(M, Vs, N1).
+
+travel(_, _, P0, P0, []) :- !.
+travel(Matrix, MinC, P0, P, Vs) :-
+	minimal_cost(Matrix, P0, U, W, MinC, _, _, Vs), 
+	delete_vertex(U, Vs1, Vs), 
+	append(Prefix, [W|Suffix], P0),
+	append(Prefix, [U,W|Suffix], P1),
+	travel(Matrix, MinC, P1, P, Vs1).
+
+minimal_cost(_, _, U0, W0, _, U0, W0, []) :- !.
+minimal_cost(Matrix, Path, U, W, MinC, MinU, MinW, [V|Vs]) :-
+	arg(V, Matrix, Row),
+	row_min(Row, W1, C, _, MinC, Path),
+	update_minimum2(C, V, W1, MinC, MinU, MinW, MinC1, MinU1, 
+	                MinW1),
+	minimal_cost(Matrix, Path, U, W, MinC1, MinU1, MinW1, Vs).
+
+row_min(_, W0, C0, W0, C0, []) :- !.
+row_min(Row, W, C, MinW, MinC, [V|Vs]) :-
+	arg(V, Row, C1), 
+	update_minimum3(C1, V, MinC, MinW, MinC1, MinW1),
+	row_min(Row, W, C, MinW1, MinC1, Vs). 
+
+cost(_, Cost0, Cost0, [_]) :- !.
+cost(Matrix, Cost, Cost0, [V1,V2|Vs]) :-
+	arg(V1, Matrix, Row),
+	arg(V2, Row, C),
+	Cost1 is Cost0+C,
+	cost(Matrix, Cost, Cost1, [V2|Vs]).
+
+delete_vertex(_, [], []):- !.
+delete_vertex(U, Ws, [U|Vs]) :- !,
+	delete_vertex(U, Ws, Vs).
+delete_vertex(U, [V|Ws], [V|Vs]) :-
+	delete_vertex(U, Ws, Vs).
+
+update_minimum1(C, _, _, MinC, MinP, MinC1, MinP1) :-
+	MinC <= C, !,
+	MinC1 = MinC, MinP1 = MinP.
+update_minimum1(C, P, V, _, _, C, [V|P]).
+
+update_minimum2(C, _, _, MinC, MinU, MinW, MinC1, MinU1, MinW1) :-
+	MinC <= C, !,
+	MinC1 = MinC, MinU1 = MinU, MinW1 = MinW.
+update_minimum2(C, V, W, _, _, _, C, V, W).
+
+
+update_minimum3(C, _, MinC, MinW, MinC1, MinW1) :-
+	MinC <= C, !,
+	MinC1 = MinC, MinW1 = MinW.
+update_minimum3(C, V, _, _, C, V).
+
+
+random_matrix(N, Matrix, S0) :-
+	functor(Matrix, matrix, N),
+	empty_rows(N, Matrix, N),
+	Limit is (N+N/2),
+	randoms_in_matrix(N,Limit,Matrix,S0, N).
+ 
+empty_rows(_, _, 0) :- !.
+empty_rows(Dim, Matrix, N) :-
+	arg(N, Matrix, Row),
+	functor(Row, row, Dim),
+	M is N-1,
+	empty_rows(Dim, Matrix, M).
+
+randoms_in_matrix(_, _, _, _, 0) :- !.
+
+randoms_in_matrix(N, Limit, Matrix, S0, I) :-
+	random_entry(N, I, Limit, Matrix, S0, S1),
+	I1 is I - 1,
+	randoms_in_matrix(N, Limit, Matrix, S1, I1).
+	
+random_entry(I, I, _, Matrix, S, S) :- !, 
+	arg(I, Matrix, Row),
+	arg(I, Row, 0).
+random_entry(J, I, Limit, Matrix, S0, S2) :-  
+	random(Random, S0, S1, Limit),
+	arg(I, Matrix, Row),
+	arg(J, Row, Random),
+	arg(J, Matrix, Col),
+	arg(I, Col, Random),
+	J1 is J-1,
+	random_entry(J1, I, Limit, Matrix, S1, S2).
+
+append([], Y, Y):- !.
+
+append([A|X], Y, [A|Z]) :- append(X, Y, Z).
+
+
+random(N, S, S1, Limit) :-
+   N is (S mod Limit)+1,
+   S1 is (125*S+1) mod 4096.
+   
+
+:-end_worker(tsp_test1).

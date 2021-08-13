@@ -1,0 +1,42 @@
+// This benchmark will test a messenger chasing a moving worker.
+// The stationary imago creates a worker imago, then sends a messenger 
+// to chase it and waits for reply.
+// The worker will  move to different destinations and finally back to
+// home, accepts queen's msg and replies.
+
+:- stationary(test2).
+
+test2(_):- 
+	create("msg_test2.lo", worker,  
+		["ming.cis.uoguelph.ca", "perseus.imago_lab.cis.uoguelph.ca", 
+		 "orion.imago_lab.cis.uoguelph.ca", "draco.imago_lab.cis.uoguelph.ca"]),
+	dispatch($oneway_messenger, worker, date_at(home)), 
+ 	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl,
+	write("Result="),
+	write(R),
+	nl,
+	terminate.
+
+:-end_stationary(test2).
+
+:-worker(msg_test2).
+
+msg_test2(Arg):-
+	roam(Arg),
+	wait_accept(queen, M),
+	dispatch($oneway_messenger, queen, reply(queens_msg(M), my_msg("I am back"))),
+	dispose.
+
+roam([]):- !,
+	stationary_host(Q),
+	move(Q).
+roam([Machine|L]):-
+	move(Machine),
+	roam(L).
+	
+:-end_worker(msg_test2).
+
+ 

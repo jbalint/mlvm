@@ -1,0 +1,67 @@
+:-stationary(test3).
+
+test3(_):- create("queens_test3.lo", "queen(25)", arg(["queen(10)", "queen(20)",
+	"queen(8)","queen(15)", "queen(11)", "queen(18)","queen(14)","queen(25)"],
+	[10, 20, 8, 15, 11, 18, 14, 25])), 
+	report(8),
+ 	terminate.
+
+report(0) :- !.
+report(N) :-
+ 	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl,
+	write("Result="),
+	write(R),
+	nl,
+	N1 is N - 1,
+	report(N1).
+
+:-end_stationary(test3).
+
+:-worker(queens_test3).
+
+queens_test3(arg(Names, Values)):- 
+	qclone(Names, Values).
+
+qclone([_], [N]):- 
+	!, queens(N).
+qclone([Y|L1], [N|L2]):-  
+	clone(Y, R),
+	R == parent ->
+		qclone(L1, L2);
+ 		queens(N).
+
+queens(N):-
+ 	range(1,N,Ns),
+	queens(Ns,[],Qs),
+	dispatch($oneway_messenger, queen, Qs),
+	dispose.
+
+queens([],Qs,Qs).
+queens(UnplacedQs,SafeQs,Qs) :-
+	select(UnplacedQs,UnplacedQs1,Q),
+	not_attack(SafeQs,Q),
+	queens(UnplacedQs1,[Q|SafeQs],Qs).
+
+not_attack(Xs,X) :-
+	not_attack(Xs,X,1).
+
+not_attack([],_,_) :- !.
+not_attack([Y|Ys],X,N) :-
+	X =/= Y+N , X =/= Y-N ,
+	N1 is N+1,
+	not_attack(Ys,X,N1).
+
+select([X|Xs],Xs,X).
+select([Y|Ys],[Y|Zs],X) :- select(Ys,Zs,X).
+
+range(N,N,[N]) :- !.
+range(M,N,[M|Ns]) :-
+	M < N,
+	M1 is M+1,
+ 	range(M1,N,Ns).
+
+:- end_worker(queens_test3).
+

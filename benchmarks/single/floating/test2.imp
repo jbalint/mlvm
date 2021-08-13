@@ -1,0 +1,16 @@
+ 
+:- stationary(test2).
+
+test2(_):- 
+	X is 2.12 + 3.2,
+	Y is (X + 5.03)/2.3,
+	write("X="),
+	write(X),
+	nl,
+	write("Y="),
+	write(Y),
+	nl,
+	terminate.
+
+:-end_stationary(test2).
+

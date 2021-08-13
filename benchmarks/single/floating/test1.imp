@@ -1,0 +1,44 @@
+ 
+:- stationary(test1).
+
+test1(_):- 
+	create("qsort_test1.lo", "worker", _),
+	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl,
+	write("Result="),
+	write(R),
+	nl,
+	terminate.
+
+:-end_stationary(test1).
+
+
+:-worker(qsort_test1).
+
+qsort_test1(N):-
+	get_list(X),
+	qsort(L, [], X),
+ 	dispatch($oneway_messenger, queen, L),
+	dispose.
+	
+get_list([1.23, 1.54, 2.32, 7.88, 4.25, 2.02, 5.86, 9.01]).
+
+qsort(R, R, []) :- !.
+qsort(R, R0, [X|L]) :-
+	partition(X, L1, L2, L),
+	qsort(R1, R0, L2),
+	qsort(R, [X|R1], L1).
+
+partition(_, [], [], []):- !.
+
+partition(Y, [X|L1], L2, [X|L]) :-
+	X <= Y, !,
+	partition(Y, L1, L2, L).
+partition(Y, L1, [X|L2], [X|L]) :-
+	partition(Y, L1, L2, L).
+
+:-end_worker(qsort_test1).
+
+ 

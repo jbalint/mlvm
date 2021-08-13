@@ -1,0 +1,101 @@
+## $Header: /usr/local/cvsroot/lvm/msger/Makefile.in,v 1.8 2003/03/24 14:07:48 gautran Exp $ ## 
+ # Copyright (C) 2003  X. Li <xli@draco.cis.uoguelph.ca>,
+ #                     G. Autran <gautran@draco.cis.uoguelph.ca>,
+ #                     H. Liang <hliang@draco.cis.uoguelph.ca>
+ # $Id: Makefile.in,v 1.8 2003/03/24 14:07:48 gautran Exp $ 
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+ # the Free Software Foundation; either version 2 of the License, or
+ # (at your option) any later version.
+ #
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+ #
+ # You should have received a copy of the GNU General Public License
+ # along with this program; if not, write to the Free Software
+ # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+libexecdir=@libexecdir@
+datadir=@datadir@
+mandir=@mandir@
+sysconfdir=@sysconfdir@
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+builddir=@builddir@
+top_builddir=@top_builddir@
+
+DESTDIR=
+VPATH=@srcdir@
+INSTALL=@INSTALL@
+INSTALL_DATA=@INSTALL_DATA@
+
+CC=@CC@
+CFLAGS = @CFLAGS@
+
+CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/include @CPPFLAGS@ 
+
+MSGER_HOME = "$(datadir)/mlvm/msger"
+
+IMAGOC = $(top_builddir)/imagoc/imagoc
+MASM = $(top_builddir)/assembler/masm
+
+
+SRCS = 	broadcast_messenger.imp  multicast_messenger.imp  paperboy_messenger.imp  sys_messenger.imp \
+	cod_messenger.imp        oneway_messenger.imp     postman_messenger.imp
+ASMS = $(SRCS:.imp=.ls)
+OBJS = $(ASMS:.ls=.lo)
+
+.SECONDARY:
+
+all: $(OBJS)
+
+clean: 
+	$(RM) $(OBJS) *.ima *.ls *.if usermodule *~
+
+distclean: clean 
+	$(RM) Makefile
+
+install:
+	$(INSTALL) -d $(DESTDIR)$(MSGER_HOME)
+	for i in ${OBJS}; \
+		do \
+		echo $$i; \
+		if [ -f "$$i" ]; then \
+			$(INSTALL_DATA) $$i $(DESTDIR)$(MSGER_HOME)/.; \
+		fi \
+	done; 
+
+
+uninstall:
+	for i in ${OBJS}; \
+		do \
+		echo $$i; \
+		if [ -f "$$i" ]; then \
+			$(RM) $(DESTDIR)$(MSGER_HOME)/$$i; \
+		fi \
+	done; 
+
+uninstallall: uninstall
+	-rmdir $(DESTDIR)$(MSGER_HOME)
+
+
+
+sys_messenger.lo: sys_messenger.ls 
+	$(top_srcdir)/system/replace -Dattach=syscall $< > $<.out
+	mv -f $<.out $<
+	$(MASM) $<
+
+
+%.ls: %.imp 
+	$(IMAGOC) -s $(<:.imp=)
+
+%.lo: %.ls 
+	$(MASM) $<
+

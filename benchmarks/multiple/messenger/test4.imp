@@ -1,0 +1,95 @@
+// This benchmark will test messengers cloning.
+// The stationary imago creates a worker imago, 
+// dispatches three oneway_messengers to the work and
+// then a cod_messenger, after that it  waits for the 
+// return of the cod_messenger, and other replies.
+// The worker first move to a new machine, waiting for a 
+// cod_messenger. As soon as the cod_messenger
+// having been accepted, the worker clones itself. As the 
+// consequence, already attached oneway_messengers should
+// be resumed. They will be colned and reattached to their
+// destined receiver. 
+// However, unlike test3.imp in which both parent and clone
+// will receive three oneway messenger, this program only
+// guarantees that the parent gets three oneway messenger, but
+// the number of messengers to the clone is uncertain.
+// This is because our clone implementation takes "as is" semantics.
+// The number of messengers to be cloned depends on how many
+// messengers have attached to the worker at the time the clone/1
+// is called. From our experiments, the clone might receive either
+// two or three cloned oneway messengers.  The parent worker
+// accepts these messengers and makes a reply to the queen.
+// On the other hand, the cloned worker
+// have to use unblocking accept trying to receive messengers.
+ 
+:- stationary(test4).
+
+test4(_):- 
+	create("msg_test4.lo", worker, "ming.cis.uoguelph.ca"),
+	dispatch($oneway_messenger, worker, msg1),
+	dispatch($oneway_messenger, worker, msg2),
+	dispatch($oneway_messenger, worker, msg3),
+	dispatch($cod_messenger, worker, message("perseus.imago_lab.cis.uoguelph.ca", ACK)),
+	display(3).
+
+display(0) :- !, terminate.
+display(N) :-
+	wait_accept(Who, R),
+	write("From "),
+	write(Who),
+	nl,
+	write("Result = "),
+	write(R),
+	nl,
+	N1 is N - 1,
+	display(N1).
+
+:-end_stationary(test4).
+
+:-worker(msg_test4).
+
+msg_test4(Arg):-
+	move(Arg),
+	wait_accept(Who, message(M, "I am going to clone myself")), 
+	clone(cloner, R),
+	R == parent -> 
+		parent_work;				// parent accepts 3 msg's
+	 	clone_work(M).				// and then accept 3 msg's
+
+parent_work :- 
+	parent_accept(L, 3),
+	dispatch($oneway_messenger, queen, L),
+	dispose.
+
+parent_accept([], 0):- !.
+parent_accept([M |L], N):-
+	wait_accept(_, M),
+	N1 is N - 1,
+	parent_accept(L, N1).
+
+clone_work(M) :- 
+	move(M), !,
+	clone_accept(L, 5),
+	dispatch($oneway_messenger, queen, L),
+	dispose.
+
+clone_work(_) :- 
+ 	dispatch($oneway_messenger, queen, "move failed"),
+	dispose.
+
+clone_accept([], 0):- !.		// clone has to use non-block accept
+clone_accept([M |L], N):-		// because it is uncertain how many
+	accept(_, M), !,		// messengers will be cloned 
+	N1 is N - 1,
+	clone_accept(L, N1).
+clone_accept(L, N):-
+	sleep(1),
+	N1 is N - 1,
+	clone_accept(L, N1).
+	
+	
+:-end_worker(msg_test4).
+
+
+
+ 

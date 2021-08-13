@@ -1,0 +1,45 @@
+
+This package includes code of assembler for MLVM.
+
+We try to design the program wrt the following rules:
+
+1) do whatever can be done to make the loader simple and fast.
+
+2) consider run-time symbol table expansion, for example, an
+imago might receive a message where some symbolic terms were
+not in its symbol table.
+
+3) the file format should be designed as consistent as possible to
+the format of a moving imago.
+
+4) do not consider dynamic consulting (loading).
+
+File format:
+
+		--------------------
+		|    magic #       |  something like JAVA class magic number
+		|------------------|
+		|    ima type      |  {stationary, worker, messenger}
+		|------------------|
+		|    security      |  to be decided (temporarily 0)
+		|------------------|
+		|    sym size      |  size of symbol table (unit in bytes)
+		|------------------|
+		|    pro size      |  size of procedure table (two words each: name, entry}
+ 		|------------------|
+		|    code size     |  size of byte code
+ 		|------------------|
+		|                  |
+		| symbol table     |  aligned 4 for each symbolic constant
+		|                  |  note: single char is handled differently
+		|------------------|
+		|        |         |  free space (can be expanded)
+		|        v         |
+		|------------------|
+		|  pro table       |  procedure table
+ 		|------------------|
+		|                  |
+		|    code          |  byte code
+		|                  |
+		--------------------
+

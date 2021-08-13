@@ -1,0 +1,26 @@
+# MLVM sample configuration file.
+# Lines starting with a # or ; are comments and will be ignored
+
+# Command should be on one single line like below. 
+
+# Number of System thread to create
+MaxSystemThread = 10
+
+# MLVM server INET port
+ServerPort = 8888
+
+# MLVM server UNIX port
+LocalStubPort = 8888
+
+# If started as a daemon
+StartAsDaemon = yes
+
+# What log level to use (High=7, None=0)
+LogLevel = 6
+
+# Imago may invoke the 'write(...)' builtin. 
+# This output will be redirected to the file below
+#OutputStreamfile = /path/to/some/file
+
+# If the server cannot resolve the host name properly.
+#Hostname = localhost

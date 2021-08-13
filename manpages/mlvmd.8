@@ -1,0 +1,112 @@
+.\"  -*- nroff -*-
+.\"
+.\" mlvm.1
+.\"
+.\" Author: Guillaume Autran <gautran@uoguelph.ca>
+.\"
+.\" Copyright (c) 2003 Guillaume Autran, Guelph, Ontario, Canada
+.\"                    All rights reserved
+.\"
+.\" Created: Thu Feb 20 07:58:13 EST 2003 gautran
+.\"
+.\" $Id: mlvmd.8,v 1.4 2003/03/16 14:32:48 gautran Exp $
+.\"
+.Dd February 20, 2003
+.Dt MLVMD 8
+.Os
+.Sh NAME
+.Nm mlvmd
+.Nd Imago Mobile-Agent Daemon (Multi-thread Light-weight Virtual Machine)
+.Sh SYNOPSIS
+.Nm mlvmd
+.Op Fl dDhqv
+.Op Fl f Ar config
+.Op Fl l Ar level
+.Op Fl p Ar port
+.Op Fl t Ar num
+.Op Fl u Ar port
+.Oo
+.Fl i
+.Ar imago1
+.Oo
+.Fl i
+.Ar imago2
+.Op Ar ...
+.Oc
+.Oc
+.Sh DESCRIPTION
+.Nm
+(MLVM Daemon) is the daemon program for 
+.Xr mlvmc 1 .
+Together these programs run imago prolog mobile agents. 
+.Xr mlvmd 8
+is normally started at boot from
+.Pa /etc/rc .
+It spawn multiple threads to run mobile agents. The exact number of threads started may be specified in the configuration file 
+.Xr mlvmd.conf 8
+as well as all other options provided in the command line. The program is intended to be as easy to install and use as possible.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl d
+Debug mode.
+The server sends verbose debug output to the system log, and does not put itself in the background. This option is only intended for debugging for the server.
+.It Fl D
+When this option is specified
+.Nm
+will not detach and does not become a daemon.
+This allows easy monitoring of
+.Nm mlvmd .
+.It Fl f Ar config
+Specifies the name of the configuration file.
+The default is
+.Pa /etc/mlvm/mlvmd.conf .
+.It Fl h
+Print a one-line help message and exit.
+.It Fl l Ar level
+Logging level.
+Indicates the amount of output sent to the system log. Full debugging -d is equivalent to the level 7. Quiet mode -q is equivalent to level 0.
+.It Fl p Ar port
+Specifies the port on which the server listens for connections (default 2223).
+.It Fl q
+Quiet mode.
+The server will not send and output to the system log.
+If the options -d and -q are provided at the same time, the last option specified will prevail.
+.It Fl t Ar num
+Maximum System Threads.
+The server will not
+Specifies the number of system threads the server will spawn at startup (default 10).
+.It Fl u Ar port
+Specifies which UNIX port the server daemon should listen for local connection from the
+.Xr mlvmc 1
+client program.
+.It Fl v
+Print the version information and exit.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/mlvm/mlvmd.conf
+Contains configuration data for
+.Nm mlvmd .
+The file format and configuration options are described in
+.Xr mlvmd.conf 5 .
+.It Pa /etc/mlvm/imago_host_key 
+This file contains the private and public part of the host keys.
+This file should only be owned by root, readable only by root, and not accessible to others.
+Note that
+.Nm
+does not start if this file is group/world-accessible.
+.It Pa /etc/mlvm/known_hosts
+This file contains the public host keys of all known servers.
+.It Pa /share/mlvm/msger/*.lo
+This files are the system default imago messenger code. They can be invoked at anytime in your imago prolog program by prefixing their name with a $ sign.
+.It Pa /var/spool/mlvm/transport/
+Imago transport spooling directory used for saving transport pdus while processed.
+.El
+.Sh AUTHORS
+Guillaume Autran <gautran@uoguelph.ca> and Xining Li <xli@uoguelph.ca>
+.Sh SEE ALSO
+.Xr imagoc 1 ,
+.Xr masm 1 ,
+.Xr mlvmc 1 ,
+.Xr mlvmd.conf 5 .

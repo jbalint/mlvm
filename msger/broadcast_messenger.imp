@@ -1,0 +1,36 @@
+:- messenger(broadcast_messenger).
+
+broadcast_messenger([_, Msg]):-
+	stationary_host(Q),
+	move(Q),		// in order to get a complete list
+	workers(_, _, L),
+ 	cloning(Msg, L),
+      	dispose.	
+
+cloning(Msg, [Who]):- !,
+ 	deliver(Who, Msg).	// deliver the last msg by itself	
+cloning(Msg, [Who|L]):-
+ 	clone(_, R),
+	R == parent ->
+		cloning(Msg, L);
+		deliver(Who, Msg).
+
+ deliver(Receiver, Msg):- 
+      	attach(Receiver, Msg, Result),
+     	check(Receiver, Msg, Result). 
+
+ check(_, _,  received):- !. 	
+
+ check(_, _, deceased):- !.	
+
+ check(Receiver, Msg, cloned(Clone)):- !,
+     	clone(_, R),			
+     	R == clone ->
+       		deliver(Clone, Msg); 
+       		deliver(Receiver, Msg).	
+
+ check(Receiver, Msg, moved(Server)):-!,
+     	move(Server), !,	
+     	deliver(Receiver, Msg).
+
+:- end_messenger(broadcast_messenger).

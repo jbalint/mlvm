@@ -1,0 +1,91 @@
+## $Header: /usr/local/cvsroot/lvm/imagoc/Makefile.in,v 1.9 2003/03/21 13:12:03 gautran Exp $ ##
+ # Copyright (C) 2003  X. Li <xli@draco.cis.uoguelph.ca>,
+ #                     G. Autran <gautran@draco.cis.uoguelph.ca>,
+ #                     H. Liang <hliang@draco.cis.uoguelph.ca>
+ # $Id: Makefile.in,v 1.9 2003/03/21 13:12:03 gautran Exp $ 
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+ # the Free Software Foundation; either version 2 of the License, or
+ # (at your option) any later version.
+ #
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+ #
+ # You should have received a copy of the GNU General Public License
+ # along with this program; if not, write to the Free Software
+ # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+##############################################################################
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+libexecdir=@libexecdir@
+datadir=@datadir@
+mandir=@mandir@
+sysconfdir=@sysconfdir@
+localstatedir=@localstatedir@
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+top_builddir=@top_builddir@
+builddir=@builddir@
+
+
+DESTDIR=
+VPATH=@srcdir@
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@ -s -m755
+INSTALL_DATA=@INSTALL_DATA@
+
+INITDIR = ${sysconfdir}
+
+CC=@CC@
+#CFLAGS = @CFLAGS@ -DBSD 
+CFLAGS = -g -O -DBSD 
+LDFLAGS = @LDFLAGS@ 
+CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/builtins @CPPFLAGS@ 
+RM=/bin/rm
+
+LIB = ${top_builddir}/builtins/builtins.o -lm
+
+EXEC = imagoc
+
+HEADERS = parser.h lib.h
+
+SRCS =  main.c parser.c scan.c codegen.c lhlib.c
+
+OBJS = $(SRCS:.c=.o) 
+
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+
+all: $(EXEC)
+
+
+clean: 
+	$(RM) -f $(OBJS) *.o
+
+
+distclean: clean
+	$(RM) -f $(EXEC) Makefile
+
+
+install:
+	$(INSTALL) -d $(DESTDIR)$(bindir) 
+	$(INSTALL_PROGRAM) $(EXEC) $(DESTDIR)$(bindir)/. 
+	$(INSTALL) -d $(DESTDIR)$(sysconfdir) 
+
+uninstall: 
+	-rm -f $(DESTDIR)$(bindir)/imagoc
+
+uninstallall:	uninstall
+	-rmdir $(DESTDIR)$(bindir)
+	-rmdir $(DESTDIR)$(sysconfdir)
+
+
+$(EXEC): $(OBJS)
+	$(CC) $(LDFLAGS) $(OBJS) $(LIB) -o $(EXEC)
+

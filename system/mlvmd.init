@@ -1,0 +1,83 @@
+#! /bin/bash
+#
+# mlvmd          Start/Stop the mlvm daemon.
+#
+# chkconfig: 345 20 40
+# description: The IMAGO Server
+#              This acronym stand for "Intelligent Agent Gliding Online" 
+#              and is a platform used to develop and deploy Prolog based Mobile Agents.
+#              The project includes a compiler, an assembler, a server and a client program.
+#              The "mlvmd" acronym stands for "Multi-threaded Logical Virtual Machine Daemon",
+#              which is the base of the entire IMAGO architecture.
+# processname: mlvmd
+
+# Source function library.
+. /etc/init.d/functions
+
+RETVAL=0
+
+# See how we were called.
+  
+prog="mlvmd"
+path="/usr/local/sbin"
+
+start() {
+	gprintf "Starting %s: " "$prog"
+	daemon "$path/$prog"
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && touch /var/lock/subsys/$prog
+	return $RETVAL
+}
+
+stop() {
+	gprintf "Stopping %s: " "$prog"
+	killproc "$path/$prog"
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/$prog
+	return $RETVAL
+}	
+
+rhstatus() {
+	status "$path/$prog"
+}	
+
+restart() {
+  	stop
+	start
+}	
+
+#reload() {
+#	gprintf "Reloading mlvm daemon configuration: "
+#	killproc $prog -HUP
+#	retval=$?
+#	echo
+#	return $RETVAL
+#}	
+
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  restart)
+  	restart
+	;;
+#  reload)
+#  	reload
+#	;;
+  status)
+  	rhstatus
+	;;
+  condrestart)
+  	[ -f /var/lock/subsys/$prog ] && restart || :
+	;;
+  *)
+	gprintf "Usage: %s {start|stop|status|restart|condrestart}\n" "$0"
+	exit 1
+esac
+
+exit $?

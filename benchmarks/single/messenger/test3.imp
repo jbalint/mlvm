@@ -1,0 +1,49 @@
+ // test if accept yields to other imagoes.
+
+:- stationary(test3).
+
+test3(_):- 
+	create("msg_test3.lo", worker, _),
+	dispatch($oneway_messenger, worker, msg1),
+  	dispatch($cod_messenger, worker, cod("Pizza=$14", ACK)),
+	display(3),
+	terminate.	
+
+display(0) :- !.
+display(N) :-
+	wait_accept(Who, R),
+	write("From "),
+	write(Who),
+	nl,
+	write("Result = "),
+	write(R),
+	nl,
+	N1 is N - 1,
+	display(N1).
+
+:-end_stationary(test3).
+
+:-worker(msg_test3).
+
+msg_test3(_):-
+ 	wait_accept(_, cod(_, "I paid the Pizza")), 
+	clone(cloner, _),
+	do_accept(5).
+
+do_accept(0):- !,
+	dispatch($oneway_messenger, queen, "no msg after 5 tries"),
+	dispose.
+do_accept(_):-
+ 	accept(_, M), !,
+	dispatch($oneway_messenger, queen, msg(M)),
+	dispose.
+do_accept(N):-
+	N1 is N -1,
+	do_accept(N1).
+ 
+	
+:-end_worker(msg_test3).
+
+
+
+ 

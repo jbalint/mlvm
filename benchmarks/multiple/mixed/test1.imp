@@ -1,0 +1,390 @@
+
+// The stationary imago creates five worker imagoes, then waits for reports.
+// Each worker will first move to their desired destination and then start
+// work there.
+
+:- stationary(test1).
+
+test1(_):- spawn(
+	["qsort.lo", "serialise.lo", "queens.lo", "tsp.lo", "match.lo"],
+	["qsort at ming (1000)", 
+	"serialise at amy (1000)",
+	"queens at perseus (25)",
+	"tsp at orion (100)", 
+	"match at draco (200)"],
+	[arg(1000, "ming.cis.uoguelph.ca"), 
+	arg(1000, "amy.cis.uoguelph.ca"),
+	arg(25, "perseus.imago_lab.cis.uoguelph.ca"), 
+	arg(100, "orion.imago_lab.cis.uoguelph.ca"),
+	arg(200, "draco.imago_lab.cis.uoguelph.ca")]), 
+	report(5),
+	terminate.
+ 
+spawn(_, _, []):- !.
+spawn([X|L0], [Y|L1], [Z|L2]):-  create(X, Y, Z),
+ 	spawn(L0, L1, L2).
+
+report(0) :- !.
+report(N) :-
+ 	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl,
+	write("Result="),
+	write(R),
+	nl,
+	N1 is N - 1,
+	report(N1).
+
+:-end_stationary(test1).
+
+
+:-worker(qsort).
+
+qsort(arg(N, Machine)):-
+	move(Machine),
+	randomlist(X, 79 , N, N),
+	qsort(L, [], X),
+ 	dispatch($oneway_messenger, queen, L),
+	dispose.
+	
+randomlist([], _, _, 0):- !.
+randomlist([X|Xs], S, Limit, N):-
+	random(X, S, S1, Limit),
+	N1 is N-1,
+	randomlist(Xs, S1, Limit, N1).
+	
+random(R, S0, S1, Limit):-
+	R is (S0 mod Limit) + 1,
+	S1 is  (741 * S0 + 1) mod 4096.
+
+qsort(R, R, []) :- !.
+qsort(R, R0, [X|L]) :-
+	partition(X, L1, L2, L),
+	qsort(R1, R0, L2),
+	qsort(R, [X|R1], L1).
+
+partition(_, [], [], []):- !.
+
+partition(Y, [X|L1], L2, [X|L]) :-
+	X <= Y, !,
+	partition(Y, L1, L2, L).
+partition(Y, L1, [X|L2], [X|L]) :-
+	partition(Y, L1, L2, L).
+
+:-end_worker(qsort).
+
+:-worker(match).
+
+match(arg(N, Machine)):-
+	move(Machine),
+	test_seq(R, 17, N),
+	dispatch($oneway_messenger, queen,R), 
+	dispose.
+
+test_seq(Res, Seed0, N) :-
+    	random_sequence(Side, Seed0, Seed1, 32),
+    	random_sequences(Tops, Seed1, Seed2, 32, N),
+    	match_sequences(Side, Res, Tops). 
+
+match_sequences(Side, Tree, []):-!.
+match_sequences(Side, Tree, [Top|Tops]) :-
+    	match_two_seq(Top, none, entry(0,0,0,0), Sim, Side),
+    	put_in_tree(Tree, Sim),
+    	match_sequences(Side, Tree, Tops).
+
+match_two_seq(_, _, Res, Res, []):-!.
+match_two_seq(Top, Prev, _, Res, [S|Side]) :-
+    	match(S, Prev, Row, entry(0,0,0,0), entry(0,0,0,0), L, Top),
+    	match_two_seq(Top, Row, L, Res, Side).
+
+match(_, _, [], _, L, L, []):-!.
+match(S, none, [E|Row], Zero, W, L, [T|Top]) :- !,
+    	match_entry(T, S, Zero, Zero, W, E),
+    	match(S, none, Row, Zero, E, L, Top).
+match(S, [N|Prev], [E|Row], NW, W, L, [T|Top]) :- 
+    	match_entry(T, S, NW, N, W, E),
+    	match(S, Prev, Row, N, E, L, Top).
+
+match_entry(T, S, entry(NWmax,NWnw, V1, V2),
+     		entry(Nmax,Nnw,Nn, V3),
+    		entry(Wmax,Wnw, V4,Ww),
+		entry(Emax,Enw,En,Ew)) :-
+	alpha_beta_penalty(Ew, Wnw, Ww),
+    	alpha_beta_penalty(En, Nnw, Nn),
+    	match_weights(T, S, Weight),
+    	Enw1 is NWnw + Weight,
+    	maxl(Enw1, Enw, [0,Ew,En]),
+    	maxl(Enw, Emax, [NWmax,Wmax,Nmax]).
+
+alpha_beta_penalty(Z, X, Y) :-
+    	X1 is X - 4,         
+    	Y1 is Y - 1,         
+    	max(Z, Y1, X1).
+
+maxl(X, X, []):-!.
+
+maxl(X, Z, [Y|R]) :- 
+    	max(X1, X, Y), 
+    	maxl(X1, Z, R).
+
+max(Z, X, Y) :-  X<Y, !, Z is  Y. 
+
+max(X,X, Y).
+
+match_weights(X, X, 1) :- !.
+match_weights(_,_,0).
+
+put_in_tree(X,Y) :- 
+    	var(X), !, 
+    	X = t(_, Y, _).
+put_in_tree(t(_, X, _), Y) :- 
+   	X == Y, !.
+put_in_tree(t(L, Y, _), X) :-
+    	X @< Y, !, 
+    	put_in_tree(L, X).
+put_in_tree(t(_, _, R), X) :-  
+    	put_in_tree(R, X).
+
+random_sequence([], Seed0, Seed1, 0) :- !, 
+	Seed0 = Seed1.  
+random_sequence([X|Xs], Seed0, Seed2, N) :-
+    	random(X, Seed0, Seed1, 10),
+   	N1 is N-1,
+    	random_sequence(Xs, Seed1, Seed2, N1).
+
+random_sequences([], Seed0, Seed1, _, 0) :- !, 
+	Seed0 = Seed1.   
+random_sequences([X|Xs], Seed0, Seed2, I, N) :-
+    	random_sequence(X, Seed0, Seed1, I),
+    	N1 is N-1,
+    	random_sequences(Xs, Seed1, Seed2, I, N1).
+
+random(N, S, S1, Limit) :-
+   	N is (S mod Limit)+1,
+   	S1 is (125*S+1) mod 4096.
+
+:-end_worker(match).
+
+:-worker(queens).
+
+queens(arg(N, Machine)):-
+	move(Machine), 
+ 	range(1,N,Ns),
+	queens(Ns,[],Qs),
+	dispatch($oneway_messenger, queen, Qs),
+	dispose.
+
+queens([],Qs,Qs).
+queens(UnplacedQs,SafeQs,Qs) :-
+	select(UnplacedQs,UnplacedQs1,Q),
+	not_attack(SafeQs,Q),
+	queens(UnplacedQs1,[Q|SafeQs],Qs).
+
+not_attack(Xs,X) :-
+	not_attack(Xs,X,1).
+
+not_attack([],_,_) :- !.
+not_attack([Y|Ys],X,N) :-
+	X =/= Y+N , X =/= Y-N ,
+	N1 is N+1,
+	not_attack(Ys,X,N1).
+
+select([X|Xs],Xs,X).
+select([Y|Ys],[Y|Zs],X) :- select(Ys,Zs,X).
+
+range(N,N,[N]) :- !.
+range(M,N,[M|Ns]) :-
+	M < N,
+	M1 is M+1,
+ 	range(M1,N,Ns).
+
+:- end_worker(queens).
+
+:-worker(serialise).
+
+serialise(arg(N, Machine)):-
+	move(Machine), 
+	randomlist(L, 79, N, N),
+ 	serialise(R, L), 
+	dispatch($oneway_messenger, queen, R),
+	dispose.
+
+
+	
+randomlist([], _, _, 0):- !.
+randomlist([X|Xs], S, Limit, N):-
+	random(X, S, S1, Limit),
+	N1 is N-1,
+	randomlist(Xs, S1, Limit, N1).
+	
+random(R, S0, S1, Limit):-
+	R is (S0 mod Limit) + 1,
+	S1 is (741 * S0 + 1) mod 4096.
+  
+serialise(R, L) :-
+    pairlists(R, A, L),
+    arrange(T, A),
+    numbered(1,_, T).
+
+pairlists([],[],[]):- !.
+pairlists( [Y|R],[pair(X,Y)|A], [X|L]) :- 
+	pairlists(R, A, L).
+
+
+arrange(void, []):- !.
+arrange(tree(T1,X,T2), [X|L]) :-
+    split(X,L1,L2, L),
+    arrange(T1, L1),
+    arrange(T2, L2).
+
+
+split(_,[],[], []):- !.
+split(X,L1,L2, [X|L]) :- !, 
+	split(X,L1,L2, L).
+split(Y,[X|L1],L2, [X|L]) :- 
+	before(X,Y), !, split(Y,L1,L2, L).
+split(Y,L1,[X|L2], [X|L]) :- 
+	before(Y,X), !, split(Y,L1,L2, L).
+
+before(pair(X1,_),pair(X2,_)) :- X1 < X2.
+
+numbered(N, N, void):- !.
+numbered(N0, N, tree(T1,pair(_,N1),T2)) :-
+    numbered(N0, N1, T1),
+    N2 is N1+1,
+    numbered(N2, N, T2).
+    
+:-end_worker(serialise).
+
+:-worker(tsp).
+
+tsp(arg(N, Machine)):-
+	move(Machine), 
+	tsp(N, Matrix, Path, Cost),
+	dispatch($oneway_messenger, queen, result(matrix(Matrix), path(Path), cost(Cost))),	
+	dispose.
+
+
+tsp(N, Matrix, Path, Cost) :- 
+    	random_matrix(N, Matrix, 17),
+    	tsp(N, Matrix,  _, 100000, Path, Cost, N).
+	
+tsp(_, _, P0, C0, P0, C0, 0) :- !.
+
+tsp(N, Matrix, MinP, MinC, P, C, V) :-
+	V > 0,
+	V1 is V-1,
+	all_but_this_vertex(V, Vs1, N),
+	travel(Matrix, MinC, [V], P1, Vs1),
+	cost(Matrix, C1, 0, [V|P1]),
+	update_minimum1(C1, P1, V, MinC, MinP, MinC1, MinP1),
+	tsp(N, Matrix, MinP1, MinC1, P, C, V1).
+ 
+all_but_this_vertex(_, [], 0) :- !.
+all_but_this_vertex(M, Vs, N) :-
+	N = M, !,
+	N1 is N-1,
+	all_but_this_vertex(N, Vs, N1).
+all_but_this_vertex(M, [N|Vs], N) :-
+	N1 is N-1,
+	all_but_this_vertex(M, Vs, N1).
+
+travel(_, _, P0, P0, []) :- !.
+travel(Matrix, MinC, P0, P, Vs) :-
+	minimal_cost(Matrix, P0, U, W, MinC, _, _, Vs), 
+	delete_vertex(U, Vs1, Vs), 
+	append(Prefix, [W|Suffix], P0),
+	append(Prefix, [U,W|Suffix], P1),
+	travel(Matrix, MinC, P1, P, Vs1).
+
+minimal_cost(_, _, U0, W0, _, U0, W0, []) :- !.
+minimal_cost(Matrix, Path, U, W, MinC, MinU, MinW, [V|Vs]) :-
+	arg(V, Matrix, Row),
+	row_min(Row, W1, C, _, MinC, Path),
+	update_minimum2(C, V, W1, MinC, MinU, MinW, MinC1, MinU1, 
+	                MinW1),
+	minimal_cost(Matrix, Path, U, W, MinC1, MinU1, MinW1, Vs).
+
+row_min(_, W0, C0, W0, C0, []) :- !.
+row_min(Row, W, C, MinW, MinC, [V|Vs]) :-
+	arg(V, Row, C1), 
+	update_minimum3(C1, V, MinC, MinW, MinC1, MinW1),
+	row_min(Row, W, C, MinW1, MinC1, Vs). 
+
+cost(_, Cost0, Cost0, [_]) :- !.
+cost(Matrix, Cost, Cost0, [V1,V2|Vs]) :-
+	arg(V1, Matrix, Row),
+	arg(V2, Row, C),
+	Cost1 is Cost0+C,
+	cost(Matrix, Cost, Cost1, [V2|Vs]).
+
+delete_vertex(_, [], []):- !.
+delete_vertex(U, Ws, [U|Vs]) :- !,
+	delete_vertex(U, Ws, Vs).
+delete_vertex(U, [V|Ws], [V|Vs]) :-
+	delete_vertex(U, Ws, Vs).
+
+update_minimum1(C, _, _, MinC, MinP, MinC1, MinP1) :-
+	MinC <= C, !,
+	MinC1 = MinC, MinP1 = MinP.
+update_minimum1(C, P, V, _, _, C, [V|P]).
+
+update_minimum2(C, _, _, MinC, MinU, MinW, MinC1, MinU1, MinW1) :-
+	MinC <= C, !,
+	MinC1 = MinC, MinU1 = MinU, MinW1 = MinW.
+update_minimum2(C, V, W, _, _, _, C, V, W).
+
+
+update_minimum3(C, _, MinC, MinW, MinC1, MinW1) :-
+	MinC <= C, !,
+	MinC1 = MinC, MinW1 = MinW.
+update_minimum3(C, V, _, _, C, V).
+
+
+random_matrix(N, Matrix, S0) :-
+	functor(Matrix, matrix, N),
+	empty_rows(N, Matrix, N),
+	Limit is (N+N/2),
+	randoms_in_matrix(N,Limit,Matrix,S0, N).
+ 
+empty_rows(_, _, 0) :- !.
+empty_rows(Dim, Matrix, N) :-
+	arg(N, Matrix, Row),
+	functor(Row, row, Dim),
+	M is N-1,
+	empty_rows(Dim, Matrix, M).
+
+randoms_in_matrix(_, _, _, _, 0) :- !.
+
+randoms_in_matrix(N, Limit, Matrix, S0, I) :-
+	random_entry(N, I, Limit, Matrix, S0, S1),
+	I1 is I - 1,
+	randoms_in_matrix(N, Limit, Matrix, S1, I1).
+	
+random_entry(I, I, _, Matrix, S, S) :- !, 
+	arg(I, Matrix, Row),
+	arg(I, Row, 0).
+random_entry(J, I, Limit, Matrix, S0, S2) :-  
+	random(Random, S0, S1, Limit),
+	arg(I, Matrix, Row),
+	arg(J, Row, Random),
+	arg(J, Matrix, Col),
+	arg(I, Col, Random),
+	J1 is J-1,
+	random_entry(J1, I, Limit, Matrix, S1, S2).
+
+append([], Y, Y):- !.
+
+append([A|X], Y, [A|Z]) :- append(X, Y, Z).
+
+
+random(N, S, S1, Limit) :-
+   N is (S mod Limit)+1,
+   S1 is (125*S+1) mod 4096.
+   
+
+:-end_worker(tsp).
+
+
+

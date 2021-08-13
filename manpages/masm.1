@@ -1,0 +1,45 @@
+.\"  -*- nroff -*-
+.\"
+.\" masm.1
+.\"
+.\" Author: Guillaume Autran <gautran@uoguelph.ca>
+.\"
+.\" Copyright (c) 2003 Guillaume Autran, Guelph, Ontario, Canada
+.\"                    All rights reserved
+.\"
+.\" Created: Thu Feb 20 07:58:13 EST 2003 gautran
+.\"
+.\" $Id: masm.1,v 1.2 2003/03/25 23:31:14 gautran Exp $
+.\"
+.Dd February 20, 2003
+.Dt MASM 1
+.Os
+.Sh NAME
+.Nm masm
+.Nd Imago Mobile-Agent Assembler 
+.Sh SYNOPSIS
+.Nm masm
+.Ar filename
+.Sh DESCRIPTION
+.Nm
+is the assembler program for generating imago prolog byte code. 
+Along with the 
+.Xr imagoc 1 ,
+compiler, you can produce prolog byte code that can be loaded into the 
+.Xr mlvmd 8
+server using the basic 
+.Xr mlvmc 1
+Client or via the command line (switch '-i imago') provided when starting the server.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It filename
+The filename (.ls) the assembler will load to generate the byte code (.lo) 
+.El
+.Sh AUTHORS
+Xining Li <xli@uoguelph.ca>
+.Sh SEE ALSO
+.Xr imagoc 1 ,
+.Xr mlvmc 1 ,
+.Xr mlvmd 8 ,
+.Xr mlvmd.conf 5 .

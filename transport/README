@@ -1,0 +1,60 @@
+## $Id: README,v 1.1.1.1 2003/01/13 19:58:55 gautran Exp $ ##
+################################################################################
+##
+##  IMAGO Transport Protocol Stack.
+##
+##  Using the Multi-Threaded, versatile scheduler algorithm.
+################################################################################
+
+
+Introduction:
+The goal of this project is to provide a lightweight transport protocol for the 
+new MLVM (Multi-threaded Lightweight Virtual Machine) designed by Dr. Xining Li.
+
+Approach:
+Imago Control Blocks (ICB) travel from virtual machine to virtual machine usually
+located on different hosts. The transport protocol must be reliable, secure and 
+fool proof. The reliability is provided by the "imago routing" layer while the
+security issue is been addressed for later study. Some sckeleton is implemented 
+to ease the designed of new layers while building up the complete server application.
+A minimum information is required from the Imago Agent in order to sucessfully 
+contact the destination MLVM. This minimum is represented by a URL or the form:
+"sitp://draco.cis.uoguelph.ca:2222". Where the protocol field (sitp) is one of the 
+following: "sitp", "sicp", "any" which stands for "Simple Imago Transport Protocol"
+"Simple Imago Control Protocol" and "any protocol" in order. User level Imagos
+simply need to use the SITP protocol as it is provided for transport of Imago.
+Others protocol are used for communication between servers and receiving just
+about anything. The transport stack is constructed on top of the regulard BSD 
+Socket interface and as of now, contains four (4) layers. From bottom to top,
+with the bottom been on top of the BSD Sockets. The connection layer, routing 
+layer, security layer, Marshalling/Umarshalling layer. The connection layer as
+for main task to open, maintain and terminate a point-to-point connection between
+two hosts. Later on, SSL encryption will be added to this layer for security 
+purposes. The routing layer is here to establish a connectionless source to 
+destination route. Gateway servers not interested on running and Imagos may
+implement a simple server including only those two layers. The security layer
+will implement some source to destination encryption algorithm. It has not been 
+yet found any reliable and fault proof algorithm for Mobile-Agent systems but
+never-the-less, hooks and skeleton are provided so later study may implement
+the security. The top most layer (marshalling/umarshalling) prepares the ICB for
+the transmission. Compacting, pointer relocation and eventually compression of 
+the ICB is done at the very begining in this layer. 
+
+
+
+Building:
+
+
+How to use it:
+
+
+
+
+G. Autran
+
+
+
+
+
+
+

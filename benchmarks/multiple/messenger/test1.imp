@@ -1,0 +1,63 @@
+// This benchmark will test messengers try to deliver msg's to workers.
+// The stationary imago creates three worker imagoes, then waits for a reply.
+// Worker A will move to one machine and then another, 
+// waits for a msg and then replies to the sender.
+// Worker B will move to a machine, waits for a msg and then replies to the sender. 
+// Worker C will move to a machine, dispatches messengers to worker A and worker B, 
+// waits for their replies,
+// and gathers their msg's and sends back to the queen.
+
+:- stationary(test1).
+
+test1(_):- 
+	create("msg_test1_worker1.lo", "worker A", ["ming.cis.uoguelph.ca", "perseus.imago_lab.cis.uoguelph.ca"]),
+	create("msg_test1_worker1.lo", "worker B", ["orion.imago_lab.cis.uoguelph.ca"]),
+	create("msg_test1_worker2.lo", "worker C", "draco.imago_lab.cis.uoguelph.ca"),
+ 	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl,
+	write("Result="),
+	write(R),
+	nl,
+	terminate.
+
+:-end_stationary(test1).
+
+:-worker(msg_test1_worker1).
+
+msg_test1_worker1(Arg):-
+	roam(Arg),
+	wait_accept(Who, M),
+	analysis(Who, M),
+	dispose.
+
+analysis(Who, hello):- !,
+	dispatch($oneway_messenger, Who, "Hello, buddy.").
+analysis(Who, hi):- !,
+	dispatch($oneway_messenger, Who, "Hi, there.").
+analysis(Who, _):-
+	dispatch($oneway_messenger, Who, "What's that?"). 
+
+roam([]):- !.
+roam([Machine|L]):-
+	move(Machine),
+	roam(L).
+	
+:-end_worker(msg_test1_worker1).
+
+:-worker(msg_test1_worker2).
+
+msg_test1_worker2(Machine):-
+	move(Machine),
+	dispatch($oneway_messenger, "worker A", hi),
+	dispatch($oneway_messenger, "worker B", hello),
+	wait_accept(W1, M1),
+	wait_accept(W2, M2),
+	dispatch($oneway_messenger, queen, final(msg(W1, M1), msg(W2, M2))),
+	dispose.
+:-end_worker(msg_test1_worker2).
+
+
+
+ 

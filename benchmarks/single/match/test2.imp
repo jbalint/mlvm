@@ -1,0 +1,119 @@
+
+ 
+:-stationary(test2).
+
+test2(_):-
+	spawn(["match(100)", "match(50)","match(200)","match(150)",
+	"match(1000)", "match(500)","match(783)","match(250)"],
+	[100, 50, 200, 150, 1000, 500, 783, 250]), 
+	report(8),
+	terminate.
+ 
+spawn(_, []):- !.
+spawn([Y|L1], [Z|L2]):-  create("match_test2.lo", Y, Z),
+ 	spawn(L1, L2).
+
+report(0) :- !.
+report(N) :-
+ 	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl,
+	write("Result="),
+	write(R),
+	nl,
+	N1 is N - 1,
+	report(N1).
+
+:-end_stationary(test2).
+
+:-worker(match_test2).
+
+match_test2(N):- 
+	test_seq(R, 17, N),
+	dispatch($oneway_messenger, queen,R), 
+	dispose.
+
+test_seq(Res, Seed0, N) :-
+    	random_sequence(Side, Seed0, Seed1, 32),
+    	random_sequences(Tops, Seed1, Seed2, 32, N),
+    	match_sequences(Side, Res, Tops). 
+
+match_sequences(Side, Tree, []):-!.
+match_sequences(Side, Tree, [Top|Tops]) :-
+    	match_two_seq(Top, none, entry(0,0,0,0), Sim, Side),
+    	put_in_tree(Tree, Sim),
+    	match_sequences(Side, Tree, Tops).
+
+match_two_seq(_, _, Res, Res, []):-!.
+match_two_seq(Top, Prev, _, Res, [S|Side]) :-
+    	match(S, Prev, Row, entry(0,0,0,0), entry(0,0,0,0), L, Top),
+    	match_two_seq(Top, Row, L, Res, Side).
+
+match(_, _, [], _, L, L, []):-!.
+match(S, none, [E|Row], Zero, W, L, [T|Top]) :- !,
+    	match_entry(T, S, Zero, Zero, W, E),
+    	match(S, none, Row, Zero, E, L, Top).
+match(S, [N|Prev], [E|Row], NW, W, L, [T|Top]) :- 
+    	match_entry(T, S, NW, N, W, E),
+    	match(S, Prev, Row, N, E, L, Top).
+
+match_entry(T, S, entry(NWmax,NWnw, V1, V2),
+     		entry(Nmax,Nnw,Nn, V3),
+    		entry(Wmax,Wnw, V4,Ww),
+		entry(Emax,Enw,En,Ew)) :-
+	alpha_beta_penalty(Ew, Wnw, Ww),
+    	alpha_beta_penalty(En, Nnw, Nn),
+    	match_weights(T, S, Weight),
+    	Enw1 is NWnw + Weight,
+    	maxl(Enw1, Enw, [0,Ew,En]),
+    	maxl(Enw, Emax, [NWmax,Wmax,Nmax]).
+
+alpha_beta_penalty(Z, X, Y) :-
+    	X1 is X - 4,         
+    	Y1 is Y - 1,         
+    	max(Z, Y1, X1).
+
+maxl(X, X, []):-!.
+
+maxl(X, Z, [Y|R]) :- 
+    	max(X1, X, Y), 
+    	maxl(X1, Z, R).
+
+max(Z, X, Y) :-  X<Y, !, Z is  Y. 
+
+max(X,X, Y).
+
+match_weights(X, X, 1) :- !.
+match_weights(_,_,0).
+
+put_in_tree(X,Y) :- 
+    	var(X), !, 
+    	X = t(_, Y, _).
+put_in_tree(t(_, X, _), Y) :- 
+   	X == Y, !.
+put_in_tree(t(L, Y, _), X) :-
+    	X @< Y, !, 
+    	put_in_tree(L, X).
+put_in_tree(t(_, _, R), X) :-  
+    	put_in_tree(R, X).
+
+random_sequence([], Seed0, Seed1, 0) :- !, 
+	Seed0 = Seed1.  
+random_sequence([X|Xs], Seed0, Seed2, N) :-
+    	random(X, Seed0, Seed1, 10),
+   	N1 is N-1,
+    	random_sequence(Xs, Seed1, Seed2, N1).
+
+random_sequences([], Seed0, Seed1, _, 0) :- !, 
+	Seed0 = Seed1.   
+random_sequences([X|Xs], Seed0, Seed2, I, N) :-
+    	random_sequence(X, Seed0, Seed1, I),
+    	N1 is N-1,
+    	random_sequences(Xs, Seed1, Seed2, I, N1).
+
+random(N, S, S1, Limit) :-
+   	N is (S mod Limit)+1,
+   	S1 is (125*S+1) mod 4096.
+
+:-end_worker(match_test2).

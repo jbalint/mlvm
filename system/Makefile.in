@@ -1,0 +1,155 @@
+## $Header: /usr/local/cvsroot/lvm/system/Makefile.in,v 1.20 2003/03/24 14:07:48 gautran Exp $ ##
+ # Copyright (C) 2003  X. Li <xli@draco.cis.uoguelph.ca>,
+ #                     G. Autran <gautran@draco.cis.uoguelph.ca>,
+ #                     H. Liang <hliang@draco.cis.uoguelph.ca>
+ # $Id: Makefile.in,v 1.20 2003/03/24 14:07:48 gautran Exp $ 
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+ # the Free Software Foundation; either version 2 of the License, or
+ # (at your option) any later version.
+ #
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+ #
+ # You should have received a copy of the GNU General Public License
+ # along with this program; if not, write to the Free Software
+ # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+libexecdir=@libexecdir@
+datadir=@datadir@
+mandir=@mandir@
+sysconfdir=@sysconfdir@
+localstatedir=@localstatedir@
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+top_builddir=@top_builddir@
+builddir=@builddir@
+tmpdir=@prefix@/tmp/mlvm
+
+DESTDIR=
+VPATH=@srcdir@
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@ -s -m755
+INSTALL_DATA=@INSTALL_DATA@
+
+CC=@CC@
+CFLAGS = @CFLAGS@ -D_REENTRANT 
+LDFLAGS = @LDFLAGS@ -L$(top_builddir)/transport
+
+# Memwatch debugging utility.
+MEMWATCH = @MEMWATCH@
+
+CONF_DIR = $(sysconfdir)/mlvm
+CONF_FILE = mlvmd.conf
+
+TODAY= $(shell date +%Y%m%d%H%M)
+
+
+CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/include -I$(top_srcdir)/opcode \
+	-D_MLVM_CONFIG_FILE="\"$(CONF_DIR)/$(CONF_FILE)\"" -D_MLVM_TMPDIR="\"${tmpdir}\"" -D_MLVM_DATADIR="\"${datadir}/mlvm\"" \
+	-D_BUILD_DATE="\"$(TODAY)\"" \
+	@CPPFLAGS@ 
+
+
+ifeq ($(MEMWATCH), yes)
+CFLAGS += -DMEMWATCH -DMW_STDIO -DMW_NOTRACE -DMALLOC_TRACE
+endif
+
+export CC CFLAGS MEMWATCH
+
+
+SRCS = 	imago_creator.c imago_in.c imago_memory.c imago_scheduler.c imago_out.c imago_timer.c \
+	mlvm.c queue.c servconf.c s_stub.c \
+	$(top_builddir)/memory/mmanager.c $(top_builddir)/creator/creator.c $(top_builddir)/builtins/bp_impl.c \
+	$(top_builddir)/engine/print.c $(top_builddir)/opcode/opcode.c 
+
+OBJS = $(SRCS:.c=.o)
+
+LIBS  = -lpthread -lssl
+
+PROGS =mlvmc
+SPROGS=mlvmd
+
+all: $(SPROGS) $(PROGS) mlvmd.init.out
+
+
+clean:
+	rm -f $(OBJS) *.o mlvmd.init.out
+
+install:
+	$(INSTALL) -d $(DESTDIR)$(bindir) 
+	$(INSTALL_PROGRAM) $(PROGS) $(DESTDIR)$(bindir)/.
+	$(INSTALL) -d $(DESTDIR)$(sbindir) 
+	$(INSTALL_PROGRAM) $(SPROGS) $(DESTDIR)$(sbindir)/.
+	$(INSTALL) -d $(DESTDIR)$(tmpdir) 
+	$(INSTALL) -d $(DESTDIR)$(CONF_DIR)
+	if [ ! -f $(DESTDIR)$(CONF_DIR)/$(CONF_FILE) ]; then \
+		$(INSTALL_DATA) $(srcdir)/$(CONF_FILE).sample $(DESTDIR)$(CONF_DIR)/$(CONF_FILE); \
+	fi
+	$(INSTALL) -d $(DESTDIR)$(datadir)/mlvm
+	$(INSTALL_DATA) $(srcdir)/LICENSE $(DESTDIR)$(datadir)/mlvm/. 
+	$(INSTALL_DATA) $(srcdir)/DISCLAIMER $(DESTDIR)$(datadir)/mlvm/. 
+	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/init.d
+	$(INSTALL) -m700 mlvmd.init.out $(DESTDIR)$(sysconfdir)/init.d/mlvmd
+
+
+uninstall: 
+	-rm -f $(DESTDIR)$(bindir)/mlvmc
+	-rm -f $(DESTDIR)$(sbindir)/mlvmd
+	-rm -f $(DESTDIR)$(CONF_DIR)/$(CONF_FILE)
+	-rm -f $(DESTDIR)$(sysconfdir)/init.d/mlvmd
+	-rm -f $(DESTDIR)$(datadir)/mlvm/LICENSE
+	-rm -f $(DESTDIR)$(datadir)/mlvm/DISCLAIMER
+
+
+uninstallall:	uninstall
+	-rmdir $(DESTDIR)$(bindir)
+	-rmdir $(DESTDIR)$(sbindir)
+	-rmdir $(DESTDIR)$(tmpdir)
+	-rmdir $(DESTDIR)$(CONF_DIR)
+	-rmdir $(DESTDIR)$(sysconfdir)/init.d/
+
+
+distclean: clean 
+	rm -f Makefile $(SPROGS) $(PROGS)
+
+%.o:%.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+%.o:%.c %.h 
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+%.o:%.c $(top_srcdir)/include/%.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+s_stub.o:s_stub.c s_stub.h
+	$(CC) $(CFLAGS) -D_GNU_SOURCE $(CPPFLAGS) -c $< -o $@
+
+mlvmc.o:  mlvmc.c servconf.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+mlvmd:	$(OBJS) mlvm.o $(top_builddir)/engine/engine.o $(top_builddir)/transport/libitp.a
+	$(CC) $(LDFLAGS) $(OBJS) $(top_builddir)/engine/engine.o $(top_builddir)/transport/libitp.a $(LIBS) -o mlvmd
+
+mlvmc:  mlvmc.o servconf.o $(top_builddir)/transport/log.o
+	$(CC) $(LDLAGS) mlvmc.o servconf.o $(top_builddir)/transport/log.o -o $@
+
+
+dlvm:	$(OBJS) $(top_builddir)/engine/dengine.o $(top_builddir)/transport/libitp.a
+	$(CC) $(LDFLAGS) $(OBJS) $(top_builddir)/engine/dengine.o $(top_builddir)/transport/libitp.a $(LIBS) -o dlvm 
+
+client:	client.o
+	$(CC) $(LDFLAGS) $< $(LIBS)  -o client
+
+dclient: dclient.o	 
+	$(CC) $(LDFLAGS) $< $(LIBS) -o dclient 
+
+mlvmd.init.out: mlvmd.init
+	$(srcdir)/replace -D/usr/local/sbin=$(sbindir) $(srcdir)/mlvmd.init > mlvmd.init.out

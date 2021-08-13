@@ -1,0 +1,628 @@
+
+This file will discuss IMAGO predicates:
+
+1) IMAGO Prolog is a simplified Prolog which extends a subset of Prolog with 
+predicates for Intelligent Mobile Agents.
+
+2) IMAGO Prolog follows the basic syntax and execution model.
+
+
+For each IMAGO predicate, we try to follow Prolog Standard document to describe
+its definition (except item 6 which is specific for our system).
+
+1) Description: assuming no errors, a) the logic condition for the built-in
+predicate to be true; and b) a procedural description of what happens as a goal
+is executed and whether the goal succeeds or fails.
+
+2) Template and modes: a specification for both the type of arguments and the mode
+of arguments. The mode is one of the following: 
+	+: instantiated, 
+	?: either instantiated or a variable, 
+	-: a variable
+	@: remaining unaltered.
+
+3) Errors: an error is a special event which causes the normal process of execution
+to be interrupted (how to handle an error is implementation dependent).
+
+4) Examples: a predication executing the builtin predicate as a goal, together with
+a statement saying whether the goal succeeds or fails or there is an error.
+
+5) Bootstrapped builtin predicates: one or more bootstrapped builtin predicates, if any,
+are defined as special cases of a more general builtin predicate.
+
+6) Eligibility: a specification of which type of imagoes is eligible to invoke
+the predicate. There are three types of imagoes: stationary, worker and messenger.
+
+
+IMAGO Predicates:
+
+(1) create/3
+
+1.1 Description: 
+
+	create(Worker_file, Imago_id, Argument) is true.
+
+	procedurally,  create(Worker_file, Imago_id, Argument) is executed as follows:
+ 
+	a) Loads the worker imago from the Worker_file, 
+	b) Allocates a new thread to execute the worker imago, 
+	c) Sets up the Imago_id and initial Argument,
+	d) Inserts this new thread into the ready queue,  
+	e) The goal succeeds.
+
+1.2 Template and modes
+
+	create(@worker_file, @imago_id, @Argument)
+
+1.3 Errors:
+
+	a) Worker_file is a variable: 
+		instantiation_error
+	b) Imago_id is a variable: 
+		instantiation_error
+	c) the file specified by Worker_file does not exist or cannot be opened: 
+		i/o_error
+	d) Imago_id is a duplicate (the same imago already exists): ** this seems 
+		a hard problem: how to check this?
+	e) the file specified by Worker_file is not an imago (worker) program: 
+		imago_type_error
+	f) no more resource for a new thread: 
+		out_of_space_error
+
+1.4 Examples:
+
+	create('./callee.ima', w1, [123, abc]).
+	Succeeds.
+	// it loads the imago file './callee.ima', alloates a new imago thread,
+	// assigns this thread with identifier w1, passes the argument list 
+	// [123, abc] to this thread, and inserts this thread into the ready queue.
+
+1.5 Bootstrapped predicates:
+
+	create(Worker_file, Imago_id) :-
+		create(Worker_file, Imago_id, _).
+
+1.6 Eligibility:
+
+	stationary only
+
+(2) dispatch/3
+
+2.1 Description:
+
+	dispatch(Messenger_file, Receiver_id, Msg) is true.
+
+	procedurally, dispatch(Messenger_file, Receiver_id, Msg) is executed as follows:
+	
+	a) Loads the messenger imago from the Messenger_file. There are two cases:
+	   internal file such as $oneway_messenger, or external file such as 
+	   './my_messenger.ima',
+	b) Allocates a new thread to execute the messenger imago,
+	c) Sets up sender_id (the caller's id), Receiver_id, Msg,
+	d) Inserts this new thread into the ready queue.
+	e) The goal succeeds. 
+
+2.2 Template and modes
+
+	dispatch(@messenger_file, @receiver_id, @msg)
+
+2.3 Errors:
+
+	a) Messenger_file is a variable: 
+		instantiation_error
+	b) Receiver_id is a variable: 
+		instantiation_error
+	c) the file specified by  Messenger_file does not exist or cannot be opened: 
+		i/o_error
+	d) a worker imago tries to dispatch an external Messenger_file: 
+		eligibility_error
+	e) the file specified by Messenger_file is not an imago (messenger) program: 
+		imago_type_error
+	f) no more resource for a new thread: 
+		out_of_space_error
+
+2.4 Examples:
+
+	dispatch($oneway_messenger, sniffer, nt(23.2)).
+	Succeeds.
+	// It spawns a new messenger thread from the internal file $oneway_messenger
+	// asking the messenger to deliver message nt(23.2) to imago sniffer
+
+	dispatch('./my_messenger.ima', node(1), foo).
+	Succeeds.
+	// It spawns a new messenger thread from the external file './my_messenger,ima'
+	// asking the messenger to deliver message foo to imago node(1)
+
+2.5 Bootstrapped predicates:
+	
+	no
+
+2.6 Eligibility:
+
+	a worker imago dispatches internal (system defined) messengers only.
+	stationary imago may dispatch messengers defined either internally or 
+	externally.
+
+(3) attach/3
+
+3.1 Description:
+
+	attach(Receiver_id, Msg, Result) is true. 
+
+	procedurally, attach(Receiver_id, Msg, Result) is executed as follows:
+
+	a) Searches for the imago identified by Receiver_id through its server's log,
+	b) If the receiver is not found at the current host, instantiates Result to
+	   'moved(queen)', the goal succeeds. 
+	c) If the receiver is found in the ready queue at the current host, then proceeds
+	   to e)
+	d) Else if the receiver is found currently blocked (waiting for a messenger),
+	   removes the receiver from the waiting queue and inserts the receiver into the
+	   ready queue,  
+	e) Deactivates the caller, and appends the caller to the receiver's 
+ 	   messenger queue. As soon as the caller has been attached to the 
+	   receiving imago, its thread is suspended.
+	e) The goal will succeed when the caller is resumed by its receiver with one
+	   of the following Result instantiation: 
+ 		(i) 'moved(Server)' if the receiver has moved to another Server, or 
+		(ii) 'deceased' if the receiver is dead, or
+		(iii) 'received' if the receiver has received the message carried by 
+			the caller, or
+		(iv) 'cloned(Clone') if the receiver has cloned itself such that
+			the new cloned imago is identified as Clone.
+ 
+3.2 Template and modes
+
+	attach(@receiver_id, ?msg, -Result)
+  
+3.3 Errors:
+
+	a) The imago identified by Receiver_id does not exist:
+		imago_id_error
+	b) Receiver_id is a variable: 
+		instantiation_error
+
+3.4 Examples:
+
+	attach(node(1), date(april, 20), R).
+	Succeeds.
+	// This is the most complicated predicate in IMAGO API.
+	// It tries to deliver the message date(april, 20) to the receiver node(1). 
+	// However, the receiver might generate one of the following events: it
+	// could move to another host, it could clone itself, it could receive 
+	// the messenger, or it could terminate its execution. If any event occurs,
+	// R is bound to the corresponding event value, and the attach/3 is considered
+	// to succeed. 
+  
+3.5 Bootstrapped predicates:
+
+	no.
+
+3.6 Eligibility:
+
+	Messenger imagoes only.
+
+(4) move/1
+
+4.1 Description:
+
+	move(Server_id) is true iff the calling imago has been transferred
+	to the remote server specified by Server_id and ready to continue
+	its execution.  
+
+	procedurally, move(Server_id) is executed as follows:
+
+ 	a) Deactivates the caller and captures its state, 
+	b) If there are pending messengers in the caller's messenger queue, all these 
+	   suspended messengers will be resumed and the term 'moved(Server_id)' will be 
+	   instantiated to the Result variable of each blocked attach/3 predicate. 
+	   (This does not apply to a moving messenger, because messengers are 
+	   anonymous and thus there is no way to attach a messenger to another 
+    	   messenger. However, a resumed messenger should follow the moving worker 
+	   to the new host in order to deliver its message.)
+	c) Transmits it to the given remote Server,
+	d) If the caller is ready to continue at the new host, the goal succeeds.
+	e) Else the goal fails at the host the caller resided at before moving.
+
+4.2 Template and modes
+	
+	move(@server_id)
+
+4.3 Errors:
+
+	a) Server_id is a variable:
+		instantiation error
+	b) Server identified by Server_id does not exist:
+		existence_error
+	c) Server rejects the moving imago:
+		security_error, or ...
+
+	*** this predicate might cause side effects, because it resumes all 
+	attached messengers. Suppose the predicate fails upon some transmission 
+	failure, such as gateway error, server shutdown, etc. Consider the following 
+	code:
+
+		p([]).
+		p([S|L]):-	move(S),
+					do_sothing, // if move/1 succeeds
+					p(L).
+		P([_|L]):- p(L). // if move/1 fails
+
+	This will allow an imago to try working on a list of 
+	possible servers. However, this causes a serious problem for its
+	attached messangers (if any), they might terminate with failure.
+	A solution to this problem is that messengers must be designed
+	to cope with failure of move/1, i.e., they must redo attach/3 upon
+	failure of move/1. For example:
+
+ 	  :- begin_messenger 
+
+	  $oneway_messenger(Receiver, Msg)::-	
+	 	  deliver(Receiver, Msg).	
+
+ 	  deliver(Receiver, Msg):- 		
+	 	  attach(Receiver, Msg, Result),
+	 	  check(Receiver, Msg, Result). 
+
+ 	  check(_, _,  received):- !, 
+	 	  dispose.		
+  	  check(_, _, deceased):-!,	
+	 	  dispose.		
+ 	  check(Receiver, Msg, cloned(Clone)):- !,
+	 	  clone(_, R),			
+	 	  R == clone $\rightarrow$ 
+	 	 	  deliver(Clone, Msg); 
+	 	  	  deliver(Receiver, Msg).	
+ 	  check(Receiver, Msg, moved(Server)):-
+	 	  move(Server),	!,
+	 	  deliver(Receiver, Msg).	
+	  check(Receiver, Msg, _):- 		// if move/1 fails
+	 	  deliver(Receiver, Msg).	// try to attach again		  
+
+	  :- end_messenger
+
+	** All system messengers should be designed to cope with this problem.
+	   How to handle this in a user-designed messenger is out of our hand.
+
+	** Or maybe we should generate an error instead of letting a move/1 fail. 
+ 
+4.4 Examples:
+
+	move('ittp://imago-s1.uoguelph.ca')
+		// If the identified server accepted this moving imago,
+		// Succeeds, the control goes to the next goal.
+		// if the identified server is not alive or some other reasons
+		// Fails, the imago backtracks at the original server.
+
+4.5 Bootstrapped predicates: 
+
+	back :- get_stationary(S),
+		move(S).
+
+4.6 Eligibility:
+
+	Worker and Messenger imagoes.
+
+(5) clone/2
+
+5.1 Description:
+	
+	clone(Imago_id, Result) is true.
+
+	procedurally, clone(Imago_id, Result) is executed as follows:
+
+	a) Allocates a new thread to execute the cloned imago,
+	b) Duplicates the caller's entire state to this new thread,
+	c) Sets up this new thread as Imago_id,
+	d) Binds the caller's Result to 'origin' and the clone's Result to 'clone',
+	e) Insert this new thread into the ready queue with a program counter to
+	   the next goal,
+	f) If the caller is a worker and there are pending messengers in
+	   its messenger queue, all these suspended messengers will be resumed and
+	   the term 'cloned(Imago_id)' will be instantiated to the Result
+	   of each blocked attach/3 predicate. (Under this case, a resumed
+	   messenger must clone itself and then the original messenger re-attaches
+	   itself to the original receiver and the cloned messenger attaches itself
+	   to the cloned worker.)
+  	g) The goal succeeds.
+
+5.2 Template and modes
+
+	clone(@imago_id, -Result)
+
+5.3 Errors:
+
+	a) Imago_id is a variable: 
+		instantiation_error
+ 	b) Imago_id is a duplicate (the same imago already exists): ** this seems 
+		a hard problem: how to check this?
+ 	c) no more resource for a new thread: 
+		out_of_space_error
+
+
+5.4 Examples:
+
+	clone(R).
+	Susseeds.
+	// called by a messenger to clone an anonymous messenger
+
+	clone(twin, R).
+	Succeeds.
+	// the caller clones itself and name the clone as 'twin'
+
+5.5 Bootstrapped predicates:
+
+	clone(Result) :- clone(_, Result).
+
+5.6 Eligibility:
+	
+	workers and messengers.
+
+(6) accept/2
+
+6.1 Description:
+
+	accept(Sender, Msg) is true iff both Sender and Msg unify with 
+	the sender's id and the message carried by a messenger in the current
+	messenger queue.
+	
+
+	procedurally, accept(Sender, Msg) is executed as follows:
+
+	a) Let H be the pointer to the caller's associated messenger queue.
+	b) If the queue is exhausted (H->nil), the goal fails.
+	c) Else let M be the messenger pointed by H,
+	d) If Sender and Msg unify with M's sender_id and M's message,
+	e) Removes M from the messenger queue, instantiates M's Result (attach/3)
+	   to 'received' and inserts M into ready queue,
+	f) The goal succeeds,
+	g) Else advances H to the next messenger, then proceeds to b).
+
+6.2 Template and modes
+
+	accept(?msg)
+	accept(?sender, ?msg)
+
+6.3 Errors:
+
+	no.
+
+6.4 Examples:
+
+	accept(M).
+	// If the contents of current messenger queue is 
+	// [M1(node(1), foo), M2(node(5), bar), ...]
+	// Succeeds, unifying M with 'foo' and the current messenger queue
+	// is left as [M2(node(5), bar), ...]
+
+	accept(S, M).
+	// If the contents of current messenger queue is 
+	// [M1(node(1), foo), M2(node(5), bar), ...]
+	// Succeeds, unifying S with 'node(1), M with 'foo' and the current 
+	// messenger queue is left as [M2(node(5), bar), ...]
+
+	accept(node(5), M).
+	// If the contents of current messenger queue is 
+	// [M1(node(1), foo), M2(node(5), bar), ...]
+	// Succeeds, unifying  M with 'bar' and the current 
+	// messenger queue is left as [M1(node(1), foo), ...]
+
+	accept(node(5), foo).
+	// If the contents of current messenger queue is 
+	// [M1(node(1), foo), M2(node(5), bar)]
+	// Fails, the current messenger queue is unchanged
+
+6.5 Bootstrapped predicates:
+
+	accept(Msg) :- accept(_, Msg).
+
+6.6 Eligibility:
+
+	Stationary and worker imagoes.
+
+(7) wait_accept/2
+
+7.1 Description:
+
+	wait_accept(Sender, Msg) is true.
+
+	procedurally, wait_accept(Sender, Msg) is executed as follows:
+
+	a) Let H be the pointer to the caller's associated messenger queue.
+	b) If the queue is exhausted (H->nil), 
+	c) Rolls back the caller's program counter to the begining of this goal, 
+	   such that it seems the goal has not been executed yet,
+	d) Deactivites the caller's thread, inserts it into the waiting queue,
+	   In this case, we say that the wait_accept/2 predicate is blocked.
+	e) Else let M be the messenger pointed by H,
+	f) If Sender and Msg unify with M's sender_id and M's message,
+	g) Removes M from the messenger queue, instantiates M's Result (attach/3)
+	   to 'received' and inserts M into ready queue,
+	h) The goal succeeds,
+	i) Else advances H to the next messenger, then proceeds to b).
+
+7.2 Template and modes
+
+	wait_accept(?msg)
+	wait_accept(?sender, ?msg)
+
+7.3 Errors:
+
+	no.
+
+7.4 Examples:
+
+	wait_accept(M).
+	// If the contents of current messenger queue is 
+	// [M1(node(1), foo), M2(node(5), bar), ...]
+	// Succeeds, unifying M with 'foo' and the current messenger queue
+	// is left as [M2(node(5), bar), ...]
+
+	wait_accept(S, M).
+	// If the contents of current messenger queue is 
+	// [M1(node(1), foo), M2(node(5), bar), ...]
+	// Succeeds, unifying S with 'node(1), M with 'foo' and the current 
+	// messenger queue is left as [M2(node(5), bar), ...]
+
+	wait_accept(node(5), M).
+	// If the contents of current messenger queue is 
+	// [M1(node(1), foo), M2(node(5), bar), ...]
+	// Succeeds, unifying  M with 'bar' and the current 
+	// messenger queue is left as [M1(node(1), foo), ...]
+
+	wait_accept(node(5), foo).
+	// If the contents of current messenger queue is 
+	// [M1(node(1), foo), M2(node(5), bar)]
+	// The goal is blocked, the current messenger queue is unchanged
+
+7.5 Bootstrapped predicates:
+
+	wait_accept(Msg) :- wait_accept(_, Msg).
+
+7.6 Eligibility:
+
+	Stationary and worker imagoes.
+
+(8) dispose/0
+
+8.1 Description:
+
+	dispose is true.
+
+	procedurally, dispose is executed as follows:
+
+	a) All the pending messengers in caller's messenger queue, if any, 
+	   will be resumed with their Result bound to 'deceased',
+	b) Deallocates the caller's thread and sets the server's log.
+	c) The goal succeeds.
+ 
+8.2 Template and modes
+	
+	dispose
+
+8.3 Errors:
+	
+	no.
+
+8.4 Examples:
+
+	no.
+
+8.5 Bootstrapped predicates:
+
+	no.
+
+8.6 Eligibility:
+
+	Worker and messenger imagoes.
+
+(9) terminate/0
+
+9.1 Description:
+
+	terminate is true.
+
+	procedurally, terminate is executed as follows:
+
+	a) Sends system messages to all involved servers to eliminate all imagoes 
+	   spawned (cloned) from this application,
+	b) Terminates the caller's thread.
+	c) The goal succeeds.
+
+9.2 Template and modes
+
+	terminate
+
+9.3 Errors:
+
+	no.
+
+9.4 Examples:
+
+	no.
+
+9.5 Bootstrapped predicates:
+
+	no.
+
+9.6 Eligibility:
+
+	Stationary imago only.
+
+(10) current_host/1
+
+10.1 Description:
+
+	procedurally, 
+
+10.2 Template and modes
+
+10.3 Errors:
+
+10.4 Examples:
+
+10.5 Bootstrapped predicates:
+
+10.6 Eligibility:
+
+(11)  
+
+11.1 Description:
+
+	procedurally, 
+
+11.2 Template and modes
+
+11.3 Errors:
+
+11.4 Examples:
+
+11.5 Bootstrapped predicates:
+
+11.6 Eligibility:
+
+(12) 
+
+12.1 Description:
+
+	procedurally, 
+
+12.2 Template and modes
+
+12.3 Errors:
+
+12.4 Examples:
+
+12.5 Bootstrapped predicates:
+
+12.6 Eligibility:
+
+(13) 
+
+13.1 Description:
+
+13.2 Template and modes
+
+13.3 Errors:
+
+13.4 Examples:
+
+13.5 Bootstrapped predicates:
+
+13.6 Eligibility:
+
+(14)  
+
+14.1 Description:
+
+14.2 Template and modes
+
+14.3 Errors:
+
+14.4 Examples:
+
+14.5 Bootstrapped predicates:
+
+14.6 Eligibility:
+
+

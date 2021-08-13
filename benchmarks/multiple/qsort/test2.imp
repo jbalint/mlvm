@@ -1,0 +1,71 @@
+
+// The stationary imago creates three worker imagoes, then waits for reports.
+// Each worker will first move to their desired destination and then start
+// work there.
+
+:- stationary(test2).
+
+test2(_):- spawn(["worker at ming (100)", "worker at perseus (500)",
+	"worker at orion (800)", "worker at draco (400)"],
+	[arg(100, "ming.cis.uoguelph.ca"), 
+	arg(500, "perseus.imago_lab.cis.uoguelph.ca"), 
+	arg(800, "orion.imago_lab.cis.uoguelph.ca"),
+	arg(400, "draco.imago_lab.cis.uoguelph.ca")]), 
+	report(4),
+	terminate.
+ 
+spawn(_, []):- !.
+spawn([Y|L1], [Z|L2]):-  create("qsort_test2.lo", Y, Z),
+ 	spawn(L1, L2).
+
+report(0) :- !.
+report(N) :-
+ 	wait_accept(Who, R),
+	write("From="),
+	write(Who),
+	nl,
+	write("Result="),
+	write(R),
+	nl,
+	N1 is N - 1,
+	report(N1).
+
+:-end_stationary(test2).
+
+
+:-worker(qsort_test2).
+
+qsort_test2(arg(N, Machine)):-
+	move(Machine),
+	randomlist(X, 79 , N, N),
+	qsort(L, [], X),
+ 	dispatch($oneway_messenger, queen, L),
+	dispose.
+	
+randomlist([], _, _, 0):- !.
+randomlist([X|Xs], S, Limit, N):-
+	random(X, S, S1, Limit),
+	N1 is N-1,
+	randomlist(Xs, S1, Limit, N1).
+	
+random(R, S0, S1, Limit):-
+	R is (S0 mod Limit) + 1,
+	S1 is  (741 * S0 + 1) mod 4096.
+
+qsort(R, R, []) :- !.
+qsort(R, R0, [X|L]) :-
+	partition(X, L1, L2, L),
+	qsort(R1, R0, L2),
+	qsort(R, [X|R1], L1).
+
+partition(_, [], [], []):- !.
+
+partition(Y, [X|L1], L2, [X|L]) :-
+	X <= Y, !,
+	partition(Y, L1, L2, L).
+partition(Y, L1, [X|L2], [X|L]) :-
+	partition(Y, L1, L2, L).
+
+:-end_worker(qsort_test2).
+
+ 

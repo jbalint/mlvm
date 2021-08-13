@@ -1,0 +1,100 @@
+// This benchmark tests user-defined multicaster to deliver msg's to all workers
+// which belong to the specified group.
+// The stationary imago creates five worker imagoes, 
+// dispatches a multicasting messenger to "node*", then waits for replies.
+// Workers will move to the specified machine. 
+// "node 1", "node 2", and "node 3" try to accept the multicaster 
+// and reply to the sender.
+// However, "other 1" and "other 2" can not see the multicaster.
+ 
+
+:- stationary(test1).
+
+test1(_):- 
+	create("msg_test1.lo", "node 1", ["ming.cis.uoguelph.ca"]),
+	create("msg_test1.lo", "other 1", ["perseus.imago_lab.cis.uoguelph.ca"]),
+	create("msg_test1.lo", "node 2", ["orion.imago_lab.cis.uoguelph.ca"]),
+	create("msg_test1.lo", "other 2", ["draco.imago_lab.cis.uoguelph.ca"]),
+	create("msg_test1.lo", "node 3", 
+		["draco.imago_lab.cis.uoguelph.ca", "orion.imago_lab.cis.uoguelph.ca"]),
+	dispatch("msg_multicaster.lo", "node*", "Hi, nodes"),
+	display(5),
+	terminate.
+
+display(0) :- !.
+display(N) :-
+ 	wait_accept(Who, R),
+	write("From = "),
+	write(Who),
+	nl,
+	write("Reply = "),
+	write(R),
+	nl,
+	N1 is N - 1,
+	display(N1).
+
+:-end_stationary(test1).
+
+:-worker(msg_test1).
+
+msg_test1(Arg):-
+	roam(Arg),
+	current_host(H),
+	try_accept(Who, M, 5),
+	dispatch($oneway_messenger, Who, worker(at(H), msg(M))),
+	dispose.
+
+roam([]):- !.
+roam([Machine|L]):-
+	move(Machine),
+	roam(L).
+
+try_accept(queen, no_msg, 0):- !.		 
+try_accept(Who, M, _ ):-		 
+	accept(Who, M), !.		  
+try_accept(Who, M, N):-
+	sleep(1),
+	N1 is N - 1,
+	try_accept(Who, M, N1).
+		
+:-end_worker(msg_test1).
+
+:- messenger(msg_multicaster).
+
+msg_multicaster([Pattern, Msg]):-
+	stationary_host(Q),
+	move(Q),		// in oredr to get a complete list
+	workers(Pattern, _, L),
+  	cloning(Msg, L),
+      	dispose.	
+
+cloning(Msg, [Who]):- !,
+ 	deliver(Who, Msg).	// deliver the last msg by itself
+	
+cloning(Msg, [Who|L]):-
+ 	clone(_, R),
+	R == parent ->
+		cloning(Msg, L);
+		deliver(Who, Msg).
+
+ deliver(Receiver, Msg):- 
+      	attach(Receiver, Msg, Result),
+     	check(Receiver, Msg, Result). 
+
+ check(_, _,  received):- !. 	
+
+ check(_, _, deceased):- !.	
+
+ check(Receiver, Msg, cloned(Clone)):- !,
+     	clone(_, R),			
+     	R == clone ->
+       		deliver(Clone, Msg); 
+       		deliver(Receiver, Msg).	
+
+ check(Receiver, Msg, moved(Server)):-!,
+     	move(Server), !,	
+     	deliver(Receiver, Msg).
+
+:- end_messenger(msg_multicaster).
+
+ 

@@ -1,0 +1,66 @@
+// This benchmark will test messenger cloning.
+// The stationary imago creates a worker imago, 
+// dispatches three oneway_messengers to the work and
+// then a cod_messenger, after that it  waits for the 
+// return of the cod_messenger, and other replies.
+// The worker first waits for a cod_messenger.
+// As soon as the cod_messenger
+// having been accepted, the worker clones itself. As the 
+// consequence, three oneway_messengers should
+// be resumed. They will be colned and reattached to their
+// destined receiver. 
+// On the other hand, The parent worker and the cloned worker
+// will move to different machines, wait to
+// accept these messengers and make a reply to the queen.
+ 
+:- stationary(test3).
+
+test3(_):- 
+	create("msg_test3.lo", worker, "draco.imago_lab.cis.uoguelph.ca"),
+	dispatch($oneway_messenger, worker, msg1),
+	dispatch($oneway_messenger, worker, msg2),
+	dispatch($oneway_messenger, worker, msg3),
+	dispatch($cod_messenger, worker, msg("perseus.imago_lab.cis.uoguelph.ca", ACK)),
+	display(3).	// one cod_messenger and two from workers
+
+display(0) :- !, terminate.
+display(N) :-
+	wait_accept(Who, R),
+	write("From "),
+	write(Who),
+	nl,
+	write("Result = "),
+	write(R),
+	nl,
+	N1 is N - 1,
+	display(N1).
+
+:-end_stationary(test3).
+
+:-worker(msg_test3).
+
+msg_test3(Arg):-
+	wait_accept(Who, msg(M, "I am going to clone myself")), 
+	clone(cloner, R),
+	R == parent -> 
+		move(Arg),			// parent moves to a new machine
+		do_job;				// and then accepts 3 msg's
+		move(M),			// clone moves to a new machine
+		do_job.				// and then accepts 3 msg's
+
+do_job :- 
+	do_accept(L, 3),
+	dispatch($oneway_messenger, queen, L),
+	dispose.
+
+do_accept([], 0):- !.
+do_accept([M |L], N):-
+	wait_accept(_, M),
+	N1 is N - 1,
+	do_accept(L, N1).
+
+:-end_worker(msg_test3).
+
+
+
+ 

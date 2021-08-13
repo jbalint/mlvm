@@ -1,0 +1,86 @@
+// This benchmark tests user-defined postman to deliver msg's to all workers.
+// The stationary imago creates three worker imagoes, 
+// dispatches a postman messenger and then waits for a reply.
+// Worker A, B and C will move to one machine and then another, 
+// waits for a newspaper and then replies to the sender.
+ 
+
+:- stationary(test1).
+
+test1(_):- 
+	create("msg_test1.lo", "worker A", 
+		["ming.cis.uoguelph.ca", "perseus.imago_lab.cis.uoguelph.ca"]),
+	create("msg_test1.lo", "worker B", 
+		["orion.imago_lab.cis.uoguelph.ca", "draco.imago_lab.cis.uoguelph.ca"]),
+	create("msg_test1.lo", "worker C", 
+		["draco.imago_lab.cis.uoguelph.ca", "orion.imago_lab.cis.uoguelph.ca"]),
+	dispatch("msg_postman.lo", ["worker A", "worker B", "worker C"], 
+		[mail_to_A, mail_to_B, mail_to_C]),
+	display(3),
+	terminate.
+
+display(0) :- !.
+display(N) :-
+ 	wait_accept(Who, R),
+	write("From = "),
+	write(Who),
+	nl,
+	write("Reply = "),
+	write(R),
+	nl,
+	N1 is N - 1,
+	display(N1).
+
+:-end_stationary(test1).
+
+:-worker(msg_test1).
+
+msg_test1(Arg):-
+	roam(Arg),
+	current_host(H),
+	wait_accept(Who, M),
+	dispatch($oneway_messenger, Who, receiver(at(H), i_got(M))),
+	dispose.
+
+roam([]):- !.
+roam([Machine|L]):-
+	move(Machine),
+	roam(L).
+	
+:-end_worker(msg_test1).
+
+:- messenger(msg_postman).
+
+msg_postman([List, Msg]):-
+	send(Msg, List),
+      	dispose.	
+
+send([], _) :- !.
+send(_, []) :- !.
+send([Msg], [Who]):- !,
+ 	deliver(Who, Msg).	// deliver the last msg by itself	
+send([Msg|ML], [Who|L]):-
+	deliver(Who, Msg),
+	send(ML, L).
+
+ deliver(Receiver, Msg):- 
+      	attach(Receiver, Msg, Result),
+     	check(Receiver, Msg, Result). 
+
+ check(_, _,  received):- !. 	
+
+ check(_, _, deceased):- !.	
+
+ check(Receiver, Msg, cloned(Clone)):- !,
+     	clone(_, R),			
+     	R == clone ->
+       		deliver(Clone, Msg); 
+       		deliver(Receiver, Msg).	
+
+ check(Receiver, Msg, moved(Server)):-!,
+     	move(Server), !,	
+     	deliver(Receiver, Msg).
+
+:- end_messenger(msg_postman).
+
+ 

@@ -1,0 +1,50 @@
+ :- messenger(sys_messenger). 
+
+ sys_messenger([Receiver, Msg]):-
+	sendto(Receiver, Msg),
+     	dispose.	
+
+ sendto(Receiver, Msg):-
+	nonvar(Receiver),
+	deliver(Receiver, Msg).
+
+ sendto(Receiver, Msg):-
+	var(Receiver), 
+	workers(_,_,L),
+	broadcast(L, Msg).
+
+ deliver(Receiver, Msg):- 	
+     attach(Receiver, Msg, Result),
+     check(Receiver, Msg, Result). 
+
+ check(_, Msg, received):- !.
+
+ check(_, _, deceased):- !.
+
+ check(Receiver, Msg, cloned(Clone)):- !,
+	clone(_, R), 
+       	R == clone -> 
+       		deliver(Clone, Msg); 
+       		deliver(Receiver, Msg).
+
+ check(Receiver, Msg, moved(Server)):-!,
+     move(Server), !,	
+     deliver(Receiver, Msg).	 		  
+
+
+ broadcast([Receiver], Msg):-
+	deliver(Receiver, Msg).	
+
+ broadcast([Receiver|L], Msg):-
+	clone(_, R),
+	R == clone ->
+		deliver(Receiver, Msg);
+		broadcast(L, Msg).
+
+ broadcast([Receiver|L], Msg):-
+	deliver(Receiver, Msg),
+	broadcast(L, Msg).
+
+ :- end_messenger(sys_messenger).
+
+					

@@ -1,0 +1,35 @@
+:- messenger(cod_messenger). 
+
+ cod_messenger([Receiver, Msg]):-	 
+	deliver(Receiver, Msg, deliver),
+	dispose.	
+
+ deliver(Receiver, Msg, Type):- 		
+     	attach(Receiver, Msg, Result),
+     	check(Receiver, Msg, Type, Result).
+ 
+ check(_, _, cod, received):- !.
+
+ check(_, _, cod, deceased):- !.		
+
+ check(Receiver, Msg, deliver, received):- !,
+	sender(Sender),
+	reset_sender(Receiver),
+	deliver(Sender, Msg, cod).	
+
+ check(Receiver, Msg, deliver, deceased):- !,	
+	sender(Sender),
+	reset_sender(Receiver),
+	deliver(Sender, Msg, cod).	
+
+ check(Receiver, Msg, Type, cloned(Clone)):- !,
+     	clone(_, R),			
+     	R == clone ->
+  		deliver(Clone, Msg, Type); 
+       		deliver(Receiver, Msg, Type).	
+
+ check(Receiver, Msg, Type, moved(Server)):-!,
+     	move(Server), !,	
+     	deliver(Receiver, Msg, Type).	
+ 		  
+:- end_messenger(cod_messenger).

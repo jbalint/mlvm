@@ -1,0 +1,18 @@
+
+For installation instruction, read the INSTALL file.
+
+To run the server, just type as root:
+	#/> mlvmd
+If you want to start an imago, you can either use the command line client (ugly) or us the gui interface provided with this distribution.
+To use the command line client type:
+	$/> mlvmc
+
+Then, you can load imago file with the LOAD commandand providing the full path to the compiled file.
+Example:
+	LOAD /path/to/file/imago.lo
+
+You can run the server as root and the client as simple user without any security issues.
+
+For more info, after installation, run the manual pages.
+
+$Id: README,v 1.2 2003/03/25 23:31:14 gautran Exp $

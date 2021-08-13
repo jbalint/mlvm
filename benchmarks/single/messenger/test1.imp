@@ -1,0 +1,52 @@
+// This benchmark will test selective accepting.
+// The stationary imago creates a worker imago, dispatches three oneway_messengers 
+// to the worker and then a cod_messenger, after that 
+// it  waits for the return of the cod_messenger, and other replies.
+// The worker waits for a cod_messenger. As soon as the cod_messenger
+// having been accepted, the worker continue to receives the other three msg's and
+// makes a reply.
+ 
+:- stationary(test1).
+
+test1(_):- 
+	create("msg_test1.lo", worker, _),
+	dispatch($oneway_messenger, worker, msg1),
+	dispatch($oneway_messenger, worker, msg2),
+	dispatch($oneway_messenger, worker, msg3),
+	dispatch($cod_messenger, worker, cod("Pizza=$14", ACK)),
+	display(2),
+	terminate.	
+
+display(0) :- !.
+display(N) :-
+	wait_accept(Who, R),
+	write("From "),
+	write(Who),
+	nl,
+	write("Result = "),
+	write(R),
+	nl,
+	N1 is N - 1,
+	display(N1).
+
+:-end_stationary(test1).
+
+:-worker(msg_test1).
+
+msg_test1(_):-
+ 	wait_accept(Who, cod(M, "I paid the Pizza")), 
+ 	do_accept(L, 3),
+	dispatch($oneway_messenger, queen, L),
+	dispose.
+
+do_accept([], 0):- !.
+do_accept([M|L], N):-
+	wait_accept(_, M),
+	N1 is N - 1,
+	do_accept(L, N1).
+	
+:-end_worker(msg_test1).
+
+
+
+ 

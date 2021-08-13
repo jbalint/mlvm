@@ -1,0 +1,201 @@
+
+This directory includes IMAGO project benchmarks. All benchmarks have
+been completely tested. Benchmarks are divided into two categories:
+
+(A) Single server (multithreading) benchmarks:
+
+    (a) standard logic program benchmarks:
+
+	match:		DNA-matching
+	tsp:		Travelling salesman 
+	qsort:		Quick-sort
+	serialise:	Selialise
+	queens:		N-queens
+
+	Note: 
+
+	(1) Each benchmark includes three tests:
+
+		test1: stationary imago plus one worker 
+		test2: stationary imago plus multiple (created) workers
+		test3: stationary imago plus multiple (cloned) workers
+
+	(2) You need to install IMAGO project on your own machine.
+
+	(3) The general pattern of test1 programs is:
+
+	/****************************************************************/
+	:-stationary(test1).
+
+	test1(_):- create("benchmark_test1.lo", worker, initial_value),
+		wait_accept(Who, R),
+		write("From="),
+		write(Who),
+		nl,
+		write("Result="),
+		write(R),
+		nl, 	
+		terminate.
+
+	:-end_stationary(test1).
+
+	:-worker(benchmark_test1).
+
+	benchmark_name(N):-
+  		benchmark(R, ...),
+		dispatch($oneway_messenger, queen, R),
+		dispose.
+
+	benchmark(R, ...):- ....
+
+	:-end_worker(benchmark_test1).
+	/****************************************************************/
+
+	where 'benchmark' shall be replaced by the corresponding program
+	name and 'initial_value' shall be replaced by some testing value.
+
+    (b) messenger benchmarks:
+
+	Three benchmarks are included in this directory.
+
+	Test1 will test selective accepting. The stationary imago creates a 
+	worker imago, dispatches three oneway_messengers to the worker and 
+	then a cod_messenger, after that it waits for the return of the 
+	cod_messenger, and other replies. The worker waits for a cod_messenger.
+	As soon as the cod_messenger having been accepted, the worker continue 
+	to receives the other three msg's and makes a reply.
+		
+ 	Test2 will test messenger cloning. The stationary imago creates a 
+	worker imago, dispatches three oneway_messengers to the work and
+	then a cod_messenger, after that it waits for the return of the 
+	cod_messenger, and other replies. The worker waits for a cod_messenger.
+	As soon as the cod_messenger having been accepted, the worker clones 
+	itself. As the consequence, three oneway_messengers should
+	be resumed. They will be colned and reattached to their destined 
+	receiver.
+
+	Test3 will test if nonblocking accept predicate yields cpu to other 
+	imagoes. When a worker issues an accept/2, the predicate fails if
+	there is no avaliable messenger. Thus the worker must be appended
+	to the ready queue, yield the cpu to other imagoes (either workers
+	or messengers). Therefore, messengers can get chance to attach to
+	its receiver.
+	
+(B) Multi-server benchmarks:
+
+    (a) Standard Qsort benchmark:
+
+	Test1: stationary imago creates one worker. The worker moves to 
+	another machine, does the qsort, and dispatches a messenger to
+	deliver the results.
+
+	Test2: stationary imago creates multiple workers. Each worker moves 
+	to a different machine, does the qsort, and dispatches a messenger 
+	to deliver the results back to the stationary imago.
+
+	Test3: stationary imago creates one worker. The worker moves to a
+	list of machines, and clones itself at each machine except the last
+	machine the worker moved to. Cloned imagoes as well as the worker 
+	(at the last machine) do qsort, and dispatches a messenger 
+	to deliver the results back to the stationary imago.
+
+    (b) Mixed benchmark:
+
+	The stationary imago creates five worker imagoes which are assigned
+	with different jobs, such as qsort, serialise, tsp, match, and queens,
+	then waits for their reports. Each worker will first move to their 
+	desired destination and then start work there.
+
+    (c) Multicaster benchmark:
+
+	This benchmark tests user-defined multicaster to deliver msg's 
+	to all workers which belong to a specified group.
+	The stationary imago creates five worker imagoes, named "node 1",
+	"node 2", "node 3", "other 1" and "other 2". It dispatches a 
+	multicasting messenger to a group of workers whose names match 
+	"node*", then waits for replies. Workers will move to the specified 
+	machine. After moving, "node 1", "node 2", and "node 3" try to accept 
+	the multicaster and reply to the sender. However, "other 1" and 
+	"other 2" can not see the multicaster. The multicaster will
+	clone itself according to the number of receivers, and each messenger
+	will track its own receiver for a p2p delivery.
+ 
+    (d) Broadcaster benchmark:
+
+	This benchmark tests user-defined broadcaster to deliver msg's 
+	to all workers. The stationary imago creates three worker imagoes, 
+	dispatches a broadcasting messenger, then waits for replies.
+	Worker A, B and C will move to one machine and then another, 
+	waits for a msg and then replies to the sender.
+	The multicaster will clone itself according to the number of receivers
+	it gathered, and each (aloned) messenger will automatically track its 
+	own receiver for a p2p delivery.
+
+    (e) Paperboy benchmark:
+
+ 	This benchmark tests user-defined paperboy to deliver msg's to 
+	a list of subscribers. The stationary imago creates three worker 
+	imagoes, dispatches a paperboy messenger and then waits for replies.
+	Worker A, B and C will move to one machine and then another, 
+	waits for a newspaper and then replies to the sender. The paperboy
+	will sequentially track each subscriber and deliver a newspaper.
+ 
+    (f) Postman benchmark:
+
+	This benchmark tests user-defined postman to deliver mails to 
+	a list of receivers. The stationary imago creates three worker 
+	imagoes, dispatches a postman messenger and then waits for replies.
+	Worker A, B and C will move to one machine and then another, 
+	waits for a mail and then replies to the sender. The postman will
+	carry out a door-to-door mail service.
+
+    (g) Messenger benchmarks:
+
+	Test1 will test worker-worker communication. The stationary imago 
+	creates three worker imagoes, then waits for a reply.
+	Worker A will move to one machine and then another, 
+	waits for a msg and then replies to the sender.
+	Worker B will move to a machine, waits for a msg and then replies 
+	to the sender. Worker C will move to a machine, dispatches
+	oneway messengers to worker A and worker B, waits for their replies,
+	and gathers their msg's and sends back to the queen.
+
+	Test2 will test a messenger chasing a moving worker.
+	The stationary imago creates a worker imago, then sends a messenger 
+	to chase it and waits for reply.
+	The worker will  move to different destinations and finally back to
+	home, accepts queen's msg and replies.
+
+	Test3 will test messenger cloning. The stationary imago creates a 
+	worker imago, dispatches three oneway_messengers to the worker and
+	then a cod_messenger, after that it  waits for the 
+	return of the cod_messenger, and other replies.
+	The worker first waits for a cod_messenger. As soon as the 
+	cod_messenger having been accepted, the worker clones itself. 
+	Consequenty, three oneway_messengers should be resumed. They will 
+	be colned and reattached to their destined receiver. 
+	On the other hand, The parent worker and the cloned worker
+	will move to different machines, wait to accept these messengers 
+	and make a reply to the queen.
+ 
+	Test4 will also test messengers cloning. The stationary imago 
+	creates a worker imago, dispatches three oneway_messengers to the 
+	worker and then a cod_messenger, after that it waits for the 
+	return of the cod_messenger, and other replies.
+	The worker first move to a new machine, waiting for a 
+	cod_messenger. As soon as the cod_messenger
+	having been accepted, the worker clones itself. As the 
+	consequence, already attached oneway_messengers should
+	be resumed. They will be colned and reattached to their
+	destined receiver. However, unlike test3.imp in which both 
+	parent and clone will receive three oneway messenger, this program 
+	only guarantees that the parent gets three oneway messenger, but
+	the number of messengers to the clone is uncertain.
+	This is because our clone/2 implementation takes "as is" semantics.
+	The number of messengers to be cloned depends on how many
+	messengers have attached to the worker at the time the clone/2
+	is called. From our experiments, the clone might receive none,
+	one, two or three cloned oneway messengers. The parent worker
+	accepts these messengers and makes a reply to the queen.
+	On the other hand, the cloned worker have to use unblocking 
+	accept trying to receive messengers.
