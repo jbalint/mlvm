@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #include "assembler.h"
-
+#include <cstring>  // contains strchr
 
 Assembler::Assembler(ifstream& in, ofstream& out, char* nm, 
 			char* lb, int* pp, PROCREC* tp, PROCREC* rp): 

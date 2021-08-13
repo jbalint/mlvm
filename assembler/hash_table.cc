@@ -25,6 +25,7 @@
 #include "hash_table.h"
 #include "opcode.h"
 #include "builtins.h"
+#include <cstring>  // contains strchr
 
 HashNode* HashNode::pool= 0;
 

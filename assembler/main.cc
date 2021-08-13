@@ -20,6 +20,7 @@
  */
 #include "assembler.h"
 #include <unistd.h>
+#include <cstring>  // contains strchr
 
 using namespace std;
 
