@@ -98,6 +98,7 @@
 #ifdef IMAGO_SECURITY_ENABLED
 # include <openssl/rsa.h>
 # include <openssl/dsa.h>
+# include <openssl/sha.h>
 # include <openssl/evp.h>
 # include <openssl/rand.h>
 # include <openssl/err.h>

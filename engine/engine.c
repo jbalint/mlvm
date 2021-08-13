@@ -1023,7 +1023,7 @@ void engine(ICBPtr plt) {
 	    }
 	}
 	else if (is_float(ax)){
-	    (int*) ax = addr(ax) + 1;
+	    ax = addr(ax) + 1;
 	    if (*(int*)ax == OD2 && *((int*)ax + 1) == OD3){
 		next(4);
 	    }
@@ -1054,7 +1054,7 @@ void engine(ICBPtr plt) {
 	    }
 	}
 	else if (is_float(ax)){
-	    (int*) ax = addr(ax) + 1;
+	    ax = addr(ax) + 1;
 	    if (*(int*)ax == OD1 && *((int*)ax + 1) == OD2){
 		next(3);
 	    }

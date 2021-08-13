@@ -52,7 +52,7 @@ CONF_FILE = mlvmd.conf
 TODAY= $(shell date +%Y%m%d%H%M)
 
 
-CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/include -I$(top_srcdir)/opcode \
+CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/include -I$(top_srcdir)/builtins -I$(top_srcdir)/opcode \
 	-D_MLVM_CONFIG_FILE="\"$(CONF_DIR)/$(CONF_FILE)\"" -D_MLVM_TMPDIR="\"${tmpdir}\"" -D_MLVM_DATADIR="\"${datadir}/mlvm\"" \
 	-D_BUILD_DATE="\"$(TODAY)\"" \
 	@CPPFLAGS@ 

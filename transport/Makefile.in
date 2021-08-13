@@ -56,7 +56,7 @@ PDU_SPOOL_DIR = $(localstatedir)/spool/mlvm/transport
 CONF_DIR = $(sysconfdir)/mlvm
 
 CFLAGS = @CFLAGS@ -D_GNU_SOURCE -D_LOG_STATISTICS\
-	-D_IMAGO_PDU_SPOOL="\"$(PDU_SPOOL_DIR)\"" -D_IMAGO_CONF_DIR="\"$(CONF_DIR)\"" 
+	-D_IMAGO_PDU_SPOOL="\"$(PDU_SPOOL_DIR)\"" -D_IMAGO_CONF_DIR="\"$(CONF_DIR)\"" -fPIC
 
 CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/include -I$(top_srcdir)/opcode @CPPFLAGS@ 
 
@@ -71,8 +71,8 @@ SRCS = imago_layer_connection.c imago_layer_routing.c imago_layer_security.c \
 ##OPCODE = $(top_srcdir)/opcode.o
 
 # Do we support encryption ??
-#SECURITY = no
-SECURITY = yes
+SECURITY = no
+#SECURITY = yes
 # Do we support PDU signature ?? (Encryption MUST be turned on)
 #SIGNATURE = no
 SIGNATURE = yes

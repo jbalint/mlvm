@@ -71,27 +71,27 @@
 /*************************************/
 
 /** Default messenger home path relative to the system directory. */
-/**
+
 #ifndef _MSGER_HOME
 # define MSGER_HOME  "../msger/"
 #else
 # define MSGER_HOME _MSGER_HOME
 #endif
-*/
-#define MSGER_HOME _MSGER_HOME
+
+//#define MSGER_HOME _MSGER_HOME
 
 #define ctype()		(opcode_tab[*tp2].type)
 
 #define cdirect()	{ *tp1++ = *tp2++;}
 
-#define cadjust()	{(int*) *tp1++ = (int*) *tp2++ + distance;}
+#define cadjust()	{ *tp1++ = (int*) *tp2++ + distance;}
 
 #define chash() { *tp1++ = *tp2++;                                 \
 		v = *tp1++ = *tp2++;                               \
- 		(int*) *tp1++ = (int*) *tp2++ + distance;          \
+ 		*tp1++ = (int*) *tp2++ + distance;          \
  		while (v--){                                       \
 		    *tp1++ = *tp2++;                               \
-		    (int*) *tp1++ = (int*) *tp2++ + distance;      \
+		    *tp1++ = (int*) *tp2++ + distance;      \
  		}                                                  \
 	}
 
@@ -1059,7 +1059,7 @@ int load_system_file(char* mname, int ss, ICBPtr cip){
     tp2 = bip->proc_base;
     while (tp1 < cip->code_base){
 	*tp1++ = *tp2;
-	(int*) *tp1++ = (int*) *tp2++ + distance;
+	*tp1++ = (int*) *tp2++ + distance;
     }
 
     // 2) code: only adjust code entries
@@ -1323,7 +1323,7 @@ int clone_block(ICBPtr ip, ICBPtr cip){
     tp2 = ip->proc_base;
     while (tp1 < cip->code_base){
 	*tp1++ = *tp2;
-	(int*) *tp1++ = (int*) *tp2++ + distance;
+	*tp1++ = (int*) *tp2++ + distance;
     }
 
 

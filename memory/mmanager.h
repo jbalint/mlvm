@@ -41,13 +41,13 @@
 
 #define mdirect()	{tp2++;}
 
-#define madjust()	{(int*) *tp2++ += distance;}
+#define madjust()	{*tp2++ += distance;}
 
 #define mhash()		{tp2++;                            \
 			ax = *tp2 + 1;                     \
 			tp2++;	                           \
 			while (ax--){                      \
-				(int*) *tp2 += distance;       \
+				*tp2 += distance;       \
 				tp2 += 2;                      \
 			}                                  \
 			tp2--;                             \

@@ -66,7 +66,7 @@ void initialize_server_options( ServerOptions *options ) {
   //  options->max_transport_threads = 5;
 
 }
-inline long int gethostid_cache(void) {
+long int gethostid_cache(void) {
   static long int hostid = 0;
   if( !hostid ) hostid = gethostid();
   return hostid;

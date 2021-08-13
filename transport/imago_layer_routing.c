@@ -135,7 +135,7 @@ void imago_layer_routing_cleanup() {
 int imago_layer_routing_getopt( int opt , void *arg ) {
     switch( opt ) {
     case R_SERVER_NAME:
-	((int *)arg) = hostname;
+	(arg) = hostname;
 	break;
     default:
 	return -1;

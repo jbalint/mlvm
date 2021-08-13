@@ -55,21 +55,21 @@ enum {	TRACE_CALL	= 1,
 	/************************************************/
 
 
-#define ACF     ((int*)*(af))
-#define ACP     ((int*)*(af - 1))
-#define ATT     ((int**)*(af - 2))
+#define ACF     (*(af))
+#define ACP     (*(af - 1))
+#define ATT     (*(af - 2))
  
-#define CCF     ((int*)*(cf))
-#define CCP     ((int*)*(cf - 1))
-#define CTT     ((int**)*(cf - 2))
+#define CCF     (*(cf))
+#define CCP     (*(cf - 1))
+#define CTT     (*(cf - 2))
 
-#define BCF     ((int*)*(bb))
-#define BCP     ((int*)*(bb - 1))
-#define BTT     ((int**)*(bb - 2))
-#define BBB     ((int*)*(bb - 3))
-#define BB0     ((int*)*(bb - 4))
-#define BBP     ((int*)*(bb - 5))
-#define BGL     ((int*)*(bb - 6))
+#define BCF     (*(bb))
+#define BCP     (*(bb - 1))
+#define BTT     (*(bb - 2))
+#define BBB     (*(bb - 3))
+#define BB0     (*(bb - 4))
+#define BBP     (*(bb - 5))
+#define BGL     (*(bb - 6))
 
 #define OD1     (*(pp + 1))
 #define OD2     (*(pp + 2))
@@ -79,13 +79,13 @@ enum {	TRACE_CALL	= 1,
 #define OD6     (*(pp + 6))
 #define OD7     (*(pp + 7))
 #define OD8     (*(pp + 8))
-#define LAB1    (int*)(*(pp + 1))
-#define LAB2    (int*)(*(pp + 2))
-#define LAB3    (int*)(*(pp + 3))
-#define LAB4    (int*)(*(pp + 4))
-#define LAB5    (int*)(*(pp + 5))
+#define LAB1    (*(pp + 1))
+#define LAB2    (*(pp + 2))
+#define LAB3    (*(pp + 3))
+#define LAB4    (*(pp + 4))
+#define LAB5    (*(pp + 5))
 
-#define cell(N)     (int*)(af - N)
+#define cell(N)     (af - N)
 
 #define next(X)     { pp += (X); goto CONTROL; }
 

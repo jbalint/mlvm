@@ -43,11 +43,11 @@ CC=@CC@
 CFLAGS = @CFLAGS@ -DSTS 
 
 #CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/include @CPPFLAGS@ 
-CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/opcode -I$(top_srcdir)/builtins @CPPFLAGS@ 
+CPPFLAGS=-I$(srcdir) -I$(top_srcdir)/include -I$(top_srcdir)/opcode -I$(top_srcdir)/builtins @CPPFLAGS@ 
 
 OBJS = 	main.o assembler.o hash_table.o   
 OPCODE = $(top_builddir)/opcode/opcode.o
-BUILTINS = $(top_builddir)/builtins/builtins.o
+BUILTINS = $(top_builddir)/builtins/builtins.o $(top_builddir)/builtins/bp_impl.o
 
 TARGET=masm
 
@@ -70,8 +70,8 @@ uninstallall:	uninstall
 	-rmdir $(DESTDIR)$(bindir)
 
 
-masm:	$(OBJS) $(OPCODE) $(BUILTINS)
-	$(CXX) -o masm $(OBJS) $(OPCODE) $(BUILTINS) $(LIB)
+masm:	$(OBJS) $(OPCODE) $(BUILTINS) ../system/mlvm.o ../creator/creator.o ../system/queue.o $(top_builddir)/transport/libitp.a
+	$(CXX) -o masm $(OBJS) $(OPCODE) $(BUILTINS) ../system/mlvm.o ../creator/creator.o ../system/queue.o $(LIB) $(top_builddir)/transport/libitp.a
 
 %.o:%.cc %.h $(srcdir)/assembler.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) -c $< -o $@

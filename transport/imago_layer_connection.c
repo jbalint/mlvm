@@ -486,13 +486,13 @@ int imago_layer_connection_getopt( int opt , void *arg ) {
     switch( opt ) {
     case C_SERVER_PORT:
     case C_SERVER_TCP_PORT:
-	((int *)arg) = c_options.imago_server_tcp_port;
+	(arg) = c_options.imago_server_tcp_port;
 	break;
     case C_SERVER_UDP_PORT:
-	((int *)arg) = c_options.imago_server_udp_port;
+	(arg) = c_options.imago_server_udp_port;
 	break;
     case C_TIMEOUT_SEC:
-	((int *)arg) = c_options.connection_timeout_sec;
+	(arg) = c_options.connection_timeout_sec;
 	break;
     default:
 	return -1;

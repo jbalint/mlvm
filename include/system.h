@@ -345,7 +345,7 @@ extern int  release_msger(ICBPtr, char*);
 
 extern int mlvm_stop;
 
-inline long int gethostid_cache(void);
+long int gethostid_cache(void);
 
 
 #define name_ptr(BASE, INDEX) ((BASE) + (INDEX) - ASCII_SIZE)

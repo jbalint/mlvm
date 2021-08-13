@@ -385,7 +385,7 @@ state_id_t imago_layer_marshaling_up( struct pdu_str *this_pdu ) {
     /** */
 
     /** The proc_base variable is actually the block_base. */
-    old_base = (char*)this_icb->proc_base = this_icb->block_base;
+    old_base = this_icb->proc_base = this_icb->block_base;
 
     /** Just in case the PDU is not valid. */
     if( ((char*)this_icb->block_ceiling - (char*)this_icb->block_base) <= 0 ) {
@@ -423,40 +423,40 @@ state_id_t imago_layer_marshaling_up( struct pdu_str *this_pdu ) {
 
     /** Then, adjust the bases. */
     /** block base. */
-    (char *)this_icb->block_base    += distance;
+    this_icb->block_base    += distance;
     /** proc base. */
-    (char *)this_icb->proc_base     += distance;
+    this_icb->proc_base     += distance;
     /** code base. */
-    (char *)this_icb->code_base     += distance;
+    this_icb->code_base     += distance;
     /** name base. */
-    (char *)this_icb->name_base     += distance;
+    this_icb->name_base     += distance;
     /** name top. */
-    (char *)this_icb->name_top      += distance;
+    this_icb->name_top      += distance;
     /** stack base. */
-    (char *)this_icb->stack_base    += distance;
+    this_icb->stack_base    += distance;
     /** block ceiling. */
-    (char *)this_icb->block_ceiling += distance;
+    this_icb->block_ceiling += distance;
     /** */
 
     /** And all the registers. */    
     /** trail top. */
-    (char *)this_icb->tt += distance;
+    this_icb->tt += distance;
     /** generation line. */
-    (char *)this_icb->gl += distance;
+    this_icb->gl += distance;
     /** cut backtrack frame pointer. */
-    (char *)this_icb->b0 += distance;
+    this_icb->b0 += distance;
     /** backtrack frame pointer. */
-    (char *)this_icb->bb += distance;
+    this_icb->bb += distance;
     /** stack top. */
-    (char *)this_icb->st += distance;
+    this_icb->st += distance;
     /** continuation frame pointer. */
-    (char *)this_icb->cf += distance;
+    this_icb->cf += distance;
     /** continuation program pointer. */
-    (char *)this_icb->cp += distance;
+    this_icb->cp += distance;
     /** active frame. */
-    (char *)this_icb->af += distance;
+    this_icb->af += distance;
     /** program pointer. */
-    (char *)this_icb->pp += distance;
+    this_icb->pp += distance;
     /** */  
 
     /** If we got the resource, load the imago memory block from the base to the name top. */
@@ -502,13 +502,13 @@ state_id_t imago_layer_marshaling_up( struct pdu_str *this_pdu ) {
 
 #define mdirect()       {tp2++;}
 
-#define madjust()       {(int*) *tp2++ += distance;}
+#define madjust()       {*tp2++ += distance;}
 
 #define mhash()         {tp2++;                            \
                         ax = *tp2 + 1;                     \
                         tp2++;                             \
                         while (ax--){                      \
-                                (int*) *tp2 += distance;       \
+                                *tp2 += distance;       \
                                 tp2 += 2;                      \
                         }                                  \
                         tp2--;                             \
@@ -538,7 +538,7 @@ void block_adjust( register struct imago_control_block *plt, register int distan
   tp1 = plt->proc_base + 1;               // hit the entry slot
   tp2 = plt->code_base;                   // get the proc_table stop point
   while (tp1 < tp2){
-    (int*) *tp1 += distance;
+    *tp1 += distance;
     tp1 += 2;                                       // advance to the next entry
   }
   
@@ -577,7 +577,7 @@ void block_adjust( register struct imago_control_block *plt, register int distan
       }
     }
     else {
-      (int*) ax = addr(ax) + distance;
+      ax = addr(ax) + distance;
       *tp1++ = ax | bx;
     }
   }

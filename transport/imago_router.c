@@ -61,7 +61,7 @@ void SIG_handler(int sig, void *arg) {
     transport_terminate();
 }
 
-int main( int argc, char **argv ) {
+int main_UNUSED( int argc, char **argv ) {
     /** Options argument variables. */
     extern char *optarg;
     extern int optind;

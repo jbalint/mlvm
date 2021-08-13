@@ -400,7 +400,7 @@ int do_expansion(ICBPtr plt){
 	tp1 = plt->proc_base + 1;		// hit the entry slot
 	tp2 = plt->code_base;			// get the proc_table stop point
 	while (tp1 < tp2){
-	    (int*) *tp1 += distance;
+	    *tp1 += distance;
 	    tp1 += 2;					// advance to the next entry
 	}
  
@@ -439,7 +439,7 @@ int do_expansion(ICBPtr plt){
 		}
 	    }
 	    else {
-		(int*) ax = addr(ax) + distance;
+		ax = addr(ax) + distance;
 		*tp1++ = ax | bx;
 	    }
 	}
@@ -449,7 +449,7 @@ int do_expansion(ICBPtr plt){
 
     tp1 = (int*) plt->tt;		// get trail top
     tp2 = tp1 + adjustment;	// new trail top
-    (int*) plt->tt = tp2;	// save new trail top
+    plt->tt = tp2;	// save new trail top
     ax = old_size - (tp1 - new_base); // get active trail size
 
     /**
@@ -478,14 +478,14 @@ int do_expansion(ICBPtr plt){
     tp1 = plt->cf;		// adjust TT in CF chain
     tp2 = plt->stack_base;
     while (tp1 > tp2) {
-	(int*) *(tp1 - 2) += adjustment;
-	tp1 = (int*) *tp1;	// next control frame
+	*(tp1 - 2) += adjustment;
+	tp1 = *tp1;	// next control frame
     }
 
     tp1 = plt->bb;		// adjust TT in BB chain
     while (tp1 > tp2) {
-	(int*) *(tp1 - 2) += adjustment;
-	tp1 = (int*) *(tp1 - 3);	// next choice frame
+	*(tp1 - 2) += adjustment;
+	tp1 = *(tp1 - 3);	// next choice frame
     }
 
     return E_SUCCEED;
@@ -500,7 +500,7 @@ int do_gc_start( ICBPtr plt, int **gc_ptr, int *gc_size ) {
     if( *gc_size >= GC_STATIC ) {
 	/** Not enough room... */
 	/** In that case, try grabing some memory using the malloc. */
-	if( ((int *)(*gc_ptr) = (int *)malloc(*gc_size * sizeof(int))) == NULL ) {
+	if( ((*gc_ptr) = (int *)malloc(*gc_size * sizeof(int))) == NULL ) {
 	    /** Out-of-memory... End-of-story. */
 	    return E_MEMORY_OUT;
 	}
